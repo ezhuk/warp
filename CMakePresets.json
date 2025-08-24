@@ -24,5 +24,15 @@
       "configurePreset": "ninja-multi-vcpkg",
       "configuration": "Release"
     }
+  ],
+  "testPresets": [
+    {
+      "name": "test",
+      "configurePreset": "ninja-multi-vcpkg",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
   ]
 }
