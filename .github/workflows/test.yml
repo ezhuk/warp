@@ -12,13 +12,16 @@ on:
 jobs:
   build:
     permissions:
-      contents: read
+      contents: write
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v5
       - uses: lukka/get-cmake@latest
       - uses: lukka/run-vcpkg@v11
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VCPKG_FEATURE_FLAGS: dependencygraph
       - uses: lukka/run-cmake@v10
         with:
           configurePreset: 'test'
