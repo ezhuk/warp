@@ -1,0 +1,28 @@
+# test.yml
+
+name: test
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: lukka/get-cmake@latest
+      - uses: lukka/run-vcpkg@v11
+      - uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'test'
+      - run: |
+          cmake --preset test
+          cmake --build build/test -j
+          ctest --test-dir build/test --output-on-failure
