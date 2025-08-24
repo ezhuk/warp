@@ -17,12 +17,12 @@
     {
       "name": "test",
       "configurePreset": "ninja-multi-vcpkg",
-      "configuration": "Debug",
+      "configuration": "Debug"
     },
     {
       "name": "prod",
       "configurePreset": "ninja-multi-vcpkg",
-      "configuration": "Release",
+      "configuration": "Release"
     }
   ]
 }
