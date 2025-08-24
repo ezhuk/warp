@@ -9,23 +9,16 @@ on:
   push:
     branches: [main]
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  VCPKG_FEATURE_FLAGS: dependencygraph
-
 jobs:
   build:
     permissions:
-      contents: write
+      contents: read
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v5
-      - uses: lukka/get-cmake@latest
       - uses: lukka/run-vcpkg@v11
-      - uses: lukka/run-cmake@v10
-        with:
-          configurePreset: 'test'
       - run: |
+          cmake --preset test
           cmake --build build/test -j
           ctest --test-dir build/test --output-on-failure
