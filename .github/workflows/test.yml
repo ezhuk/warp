@@ -21,4 +21,4 @@ jobs:
       - run: |
           cmake --preset ninja-multi-vcpkg
           cmake --build --preset test
-          ctest --test-dir build/test --output-on-failure
+          ctest --preset test
