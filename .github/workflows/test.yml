@@ -19,6 +19,6 @@ jobs:
       - uses: actions/checkout@v5
       - uses: lukka/run-vcpkg@v11
       - run: |
-          cmake --preset test
-          cmake --build build/test -j
-          ctest --test-dir build/test --output-on-failure
+          cmake --preset ninja-multi-vcpkg
+          cmake --build --preset test
+          ctest --preset test

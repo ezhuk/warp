@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 10,
   "cmakeMinimumRequired": {
     "major": 3,
     "minor": 22,
@@ -7,21 +7,31 @@
   },
   "configurePresets": [
     {
-      "name": "test",
+      "name": "ninja-multi-vcpkg",
+      "generator": "Ninja Multi-Config",
       "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "BUILD_TESTS": "ON"
-      }
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "test",
+      "configurePreset": "ninja-multi-vcpkg",
+      "configuration": "Debug"
     },
     {
       "name": "prod",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "BUILD_TESTS": "OFF"
+      "configurePreset": "ninja-multi-vcpkg",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "test",
+      "configurePreset": "ninja-multi-vcpkg",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
       }
     }
   ]

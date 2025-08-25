@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.22)
 
 project(warp VERSION 0.1.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_TESTS "Build tests" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 find_package(fmt CONFIG REQUIRED)
@@ -41,7 +41,9 @@ target_link_libraries(app
     warp::warp
 )
 
-set_target_properties(app PROPERTIES OUTPUT_NAME "warp")
+set_target_properties(app PROPERTIES
+  OUTPUT_NAME "warp"
+)
 
 if(BUILD_TESTS)
   enable_testing()
