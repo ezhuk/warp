@@ -41,7 +41,9 @@ target_link_libraries(app
     warp::warp
 )
 
-set_target_properties(app PROPERTIES OUTPUT_NAME "warp")
+set_target_properties(app PROPERTIES
+  OUTPUT_NAME "warp"
+)
 
 if(BUILD_TESTS)
   enable_testing()
