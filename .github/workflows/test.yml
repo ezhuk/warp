@@ -20,7 +20,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - uses: lukka/run-vcpkg@v11
       - run: |
-          uvx pre-commit run --all-files
+          uvx pre-commit run --all-files --show-diff-on-failure
           cmake --preset ninja-multi-vcpkg
           cmake --build --preset test
           ctest --preset test
