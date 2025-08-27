@@ -9,3 +9,11 @@ repos:
   hooks:
     - id: clang-format
       types_or: [c, c++, header]
+- repo: local
+  hooks:
+    - id: clang-tidy
+      entry: clang-tidy
+      language: system
+      types_or: [c, c++, header]
+      args: [-p, build/ninja-multi-vcpkg, --warnings-as-errors=*]
+      require_serial: true
