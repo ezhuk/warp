@@ -9,5 +9,11 @@
         "ms-vscode.cpptools"
       ]
     }
-  }
+  },
+  "containerEnv": {
+    "VCPKG_ROOT": "/opt/vcpkg",
+    "CMAKE_TOOLCHAIN_FILE": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake",
+    "VCPKG_FEATURE_FLAGS": "manifests,registries,versions"
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh"
 }
