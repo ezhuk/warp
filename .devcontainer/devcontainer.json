@@ -15,5 +15,10 @@
     "CMAKE_TOOLCHAIN_FILE": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake",
     "VCPKG_FEATURE_FLAGS": "manifests,registries,versions"
   },
+  "features": {
+    "ghcr.io/devcontainers-community/features/cmake:1": {
+      "version": "4.1.0"
+    }
+  },
   "postCreateCommand": "bash .devcontainer/post-create.sh"
 }
