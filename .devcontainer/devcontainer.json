@@ -13,12 +13,7 @@
   "containerEnv": {
     "VCPKG_ROOT": "/opt/vcpkg",
     "CMAKE_TOOLCHAIN_FILE": "/opt/vcpkg/scripts/buildsystems/vcpkg.cmake",
-    "VCPKG_FEATURE_FLAGS": "manifests,registries,versions"
-  },
-  "features": {
-    "ghcr.io/devcontainers-community/features/cmake:1": {
-      "version": "4.1.0"
-    }
+    "VCPKG_FEATURE_FLAGS": "manifests,versions"
   },
   "postCreateCommand": "bash .devcontainer/post-create.sh"
 }
