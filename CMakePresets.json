@@ -10,7 +10,10 @@
       "name": "ninja-multi-vcpkg",
       "generator": "Ninja Multi-Config",
       "binaryDir": "${sourceDir}/build/${presetName}",
-      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_WITH_INSTALL_RPATH": "ON"
+      }
     }
   ],
   "buildPresets": [
