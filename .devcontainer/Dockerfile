@@ -1,12 +1,9 @@
 FROM mcr.microsoft.com/devcontainers/cpp:ubuntu-24.04
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git && \
+    apt-get install -y --no-install-recommends git ninja-build && \
     rm -rf /var/lib/apt/lists/*
 
 RUN wget -q https://cmake.org/files/v4.1/cmake-4.1.0-linux-x86_64.sh && \
     bash cmake-4.1.0-linux-x86_64.sh --skip-license --prefix=/usr/local && \
     rm cmake-4.1.0-linux-x86_64.sh
-
-RUN git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg && \
-    /opt/vcpkg/bootstrap-vcpkg.sh -disableMetrics
