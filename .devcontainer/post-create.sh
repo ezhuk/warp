@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cmake --preset ninja-multi-vcpkg || true
+cmake --preset ninja-multi-vcpkg
