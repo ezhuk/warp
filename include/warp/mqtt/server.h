@@ -3,9 +3,9 @@
 namespace warp::mqtt {
 class Server {
 public:
-    Server();
-    virtual ~Server();
+  Server();
+  virtual ~Server();
 
-    void start();
+  void start();
 };
-}  // namespace warp
+}  // namespace warp::mqtt

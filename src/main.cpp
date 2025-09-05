@@ -1,5 +1,4 @@
 #include <fmt/core.h>
-
 #include <warp/mqtt/server.h>
 
 int main() {
