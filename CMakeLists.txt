@@ -34,7 +34,7 @@ target_link_libraries(warp
   PUBLIC
     fmt::fmt
   PRIVATE
-    folly::folly
+    Folly::folly
     wangle::wangle
 )
 
