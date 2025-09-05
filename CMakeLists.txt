@@ -11,6 +11,8 @@ option(BUILD_TESTS "Build tests" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 find_package(fmt CONFIG REQUIRED)
+find_package(folly CONFIG REQUIRED)
+find_package(wangle CONFIG REQUIRED)
 
 add_library(warp)
 
@@ -25,6 +27,15 @@ target_include_directories(warp
 target_sources(warp
   PRIVATE
     src/warp/warp.cpp
+    src/warp/mqtt/server.cpp
+)
+
+target_link_libraries(warp
+  PUBLIC
+    fmt::fmt
+  PRIVATE
+    Folly::folly
+    wangle::wangle
 )
 
 add_library(warp::warp ALIAS warp)
