@@ -2,7 +2,7 @@
 
 namespace warp::mqtt {
 class Server {
-public:
+ public:
   Server();
   virtual ~Server();
 

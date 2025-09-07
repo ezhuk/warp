@@ -1,4 +1,4 @@
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/io/IOBuf.h>
 #include <folly/io/IOBufQueue.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
@@ -6,22 +6,34 @@
 #include <wangle/channel/Pipeline.h>
 #include <warp/mqtt/server.h>
 
+#include <algorithm>
+#include <cstdint>
+#include <string>
+#include <vector>
+
 namespace warp::mqtt {
 namespace {
-inline bool readVarint(folly::io::Cursor& c, uint32_t& out, int& used) {
-  out = 0;
-  used = 0;
+struct VarintResult {
+  uint32_t value{0};
+  uint8_t bytes{0};
+  bool ok{false};
+};
+
+inline VarintResult readVarint(folly::io::Cursor& cur) {
+  VarintResult r{};
   uint32_t mul = 1;
   for (;;) {
-    if (!c.canAdvance(1)) return false;
-    uint8_t b = c.read<uint8_t>();
-    out += (b & 0x7F) * mul;
+    if (!cur.canAdvance(1)) return r;
+    uint8_t b = cur.read<uint8_t>();
+    r.value += (b & 0x7F) * mul;
     mul *= 128;
-    ++used;
-    if ((b & 0x80) == 0 || used == 4) break;
+    ++r.bytes;
+    if ((b & 0x80) == 0 || r.bytes == 4) break;
   }
-  return true;
+  r.ok = true;
+  return r;
 }
+
 inline void writeVarint(uint32_t v, std::vector<uint8_t>& out) {
   do {
     uint8_t b = v % 128;
@@ -33,6 +45,8 @@ inline void writeVarint(uint32_t v, std::vector<uint8_t>& out) {
 }  // namespace
 
 using Pipeline = wangle::Pipeline<folly::IOBufQueue&, std::unique_ptr<folly::IOBuf>>;
+
+enum class Proto : uint8_t { V311 = 4, V5 = 5 };
 
 enum class Type : uint8_t {
   CONNECT,
@@ -82,7 +96,7 @@ struct Packet {
 
 class Codec final
     : public wangle::Handler<folly::IOBufQueue&, Packet, Packet, std::unique_ptr<folly::IOBuf>> {
-public:
+ public:
   using Context = typename wangle::Handler<folly::IOBufQueue&, Packet, Packet,
                                            std::unique_ptr<folly::IOBuf>>::Context;
 
@@ -102,7 +116,7 @@ public:
   }
 
   folly::Future<folly::Unit> write(Context* ctx, Packet pkt) override {
-    auto buf = encode(std::move(pkt));
+    auto buf = encode(pkt);
     if (buf) {
       auto v = buf->clone();
       v->coalesce();
@@ -116,7 +130,7 @@ public:
     return ctx->fireWrite(nullptr);
   }
 
-private:
+ private:
   bool tryReadOne(folly::IOBufQueue& in, Packet& out) {
     if (in.chainLength() < 2) return false;
 
@@ -125,9 +139,10 @@ private:
     uint8_t type = h1 >> 4;
     uint8_t flags = h1 & 0x0F;
 
-    uint32_t rl = 0;
-    int rlBytes = 0;
-    if (!readVarint(c, rl, rlBytes)) return false;
+    auto rlRes = readVarint(c);
+    if (!rlRes.ok) return false;
+    uint32_t rl = rlRes.value;
+    size_t rlBytes = rlRes.bytes;
 
     const size_t headerLen = 1 + rlBytes;
     const size_t totalLen = headerLen + rl;
@@ -136,7 +151,7 @@ private:
     if (auto* head = in.front()) {
       auto v = head->clone();
       v->coalesce();
-      fmt::print("READ: {} bytes (type={})\n", totalLen, (int)type);
+      fmt::print("READ: {} bytes (type={})\n", totalLen, static_cast<int>(type));
       dumpHex(v->data(), std::min(v->length(), totalLen));
     }
 
@@ -149,26 +164,25 @@ private:
         uint16_t nameLen = d.readBE<uint16_t>();
         if (!d.canAdvance(nameLen + 1)) break;
         d.skip(nameLen);
-        protoLevel_ = d.read<uint8_t>();
+        proto_level_ = d.read<uint8_t>();
         out = Packet{Type::CONNECT};
-        out.protoLevel = protoLevel_;
+        out.protoLevel = proto_level_;
         in.trimStart(totalLen);
         return true;
       }
       case 8: {  // SUBSCRIBE
         Packet p{Type::SUBSCRIBE};
-        p.protoLevel = protoLevel_;
+        p.protoLevel = proto_level_;
         if (!d.canAdvance(2)) break;
         p.subscribe.pktId = d.readBE<uint16_t>();
         size_t consumed = 2;
 
-        if (protoLevel_ == 5) {
-          uint32_t propLen = 0;
-          int propB = 0;
-          if (!readVarint(d, propLen, propB)) break;
-          if (!d.canAdvance(propLen)) break;
-          d.skip(propLen);
-          consumed += propB + propLen;
+        if (proto_level_ == 5) {
+          auto prop = readVarint(d);
+          if (!prop.ok) break;
+          if (!d.canAdvance(prop.value)) break;
+          d.skip(prop.value);
+          consumed += prop.bytes + prop.value;
         }
 
         while (consumed < rl) {
@@ -189,7 +203,7 @@ private:
       }
       case 3: {  // PUBLISH
         Packet p{Type::PUBLISH};
-        p.protoLevel = protoLevel_;
+        p.protoLevel = proto_level_;
         uint8_t qos = (flags >> 1) & 0x03;
 
         if (!d.canAdvance(2)) break;
@@ -211,13 +225,12 @@ private:
           return true;
         }
 
-        if (protoLevel_ == 5) {
-          uint32_t propLen = 0;
-          int propB = 0;
-          if (!readVarint(d, propLen, propB)) break;
-          if (!d.canAdvance(propLen)) break;
-          d.skip(propLen);
-          consumed += propB + propLen;
+        if (proto_level_ == 5) {
+          auto prop = readVarint(d);
+          if (!prop.ok) break;
+          if (!d.canAdvance(prop.value)) break;
+          d.skip(prop.value);
+          consumed += prop.bytes + prop.value;
         }
 
         p.publish.qos = qos;
@@ -249,12 +262,12 @@ private:
     return false;
   }
 
-  static std::unique_ptr<folly::IOBuf> encode(Packet p) {
+  static std::unique_ptr<folly::IOBuf> encode(Packet const& p) {
     switch (p.type) {
       case Type::CONNACK:
         return encConnack(p.protoLevel);
       case Type::SUBACK:
-        return encSuback(p.protoLevel, p.suback.pktId, p.suback.grants);
+        return encSuback(static_cast<Proto>(p.protoLevel), p.suback.pktId, p.suback.grants);
       case Type::PUBACK:
         return encPuback(p.puback.pktId);
       case Type::PINGRESP:
@@ -274,22 +287,23 @@ private:
     }
   }
 
-  static std::unique_ptr<folly::IOBuf> encSuback(uint8_t proto, uint16_t pid,
+  static std::unique_ptr<folly::IOBuf> encSuback(Proto proto, uint16_t pid,
                                                  const std::vector<uint8_t>& grants) {
     std::vector<uint8_t> out;
-    out.reserve(4 + grants.size());
-    out.push_back(0x90);  // SUBACK
-    uint32_t rl = (proto == 5) ? (uint32_t)(2 + 1 + grants.size()) : (uint32_t)(2 + grants.size());
+    out.push_back(0x90);
+    const bool is_v5 = (proto == Proto::V5);
+    uint32_t rl = is_v5 ? static_cast<uint32_t>(2 + 1 + grants.size())
+                        : static_cast<uint32_t>(2 + grants.size());
     writeVarint(rl, out);
-    out.push_back(uint8_t(pid >> 8));
-    out.push_back(uint8_t(pid & 0xFF));
-    if (proto == 5) out.push_back(0x00);  // properties len = 0
+    out.push_back(static_cast<uint8_t>(pid >> 8));
+    out.push_back(static_cast<uint8_t>(pid & 0xFF));
+    if (is_v5) out.push_back(0x00);
     out.insert(out.end(), grants.begin(), grants.end());
     return folly::IOBuf::copyBuffer(out.data(), out.size());
   }
 
   static std::unique_ptr<folly::IOBuf> encPuback(uint16_t pid) {
-    uint8_t b[4] = {0x40, 0x02, uint8_t(pid >> 8), uint8_t(pid & 0xFF)};
+    uint8_t b[4] = {0x40, 0x02, static_cast<uint8_t>(pid >> 8), static_cast<uint8_t>(pid & 0xFF)};
     return folly::IOBuf::copyBuffer(b, sizeof(b));
   }
 
@@ -304,10 +318,11 @@ private:
     for (size_t i = 0; i < show; i += 16) {
       fmt::print("{:08x}: ", i);
       for (size_t j = 0; j < 16; ++j) {
-        if (i + j < show)
+        if (i + j < show) {
           fmt::print("{:02x} ", data[i + j]);
-        else
+        } else {
           fmt::print("   ");
+        }
       }
       fmt::print(" |");
       for (size_t j = 0; j < 16 && i + j < show; ++j) {
@@ -319,11 +334,11 @@ private:
   }
 
   folly::IOBufQueue in_{folly::IOBufQueue::cacheChainLength()};
-  uint8_t protoLevel_{4};
+  uint8_t proto_level_{4};
 };
 
 class Handler final : public wangle::HandlerAdapter<Packet> {
-public:
+ public:
   void read(Context* ctx, Packet pkt) override {
     switch (pkt.type) {
       case Type::CONNECT: {
@@ -341,14 +356,14 @@ public:
         for (auto q : pkt.subscribe.reqQoS) resp.suback.grants.push_back(q >= 1 ? 1 : 0);
         for (size_t i = 0; i < pkt.subscribe.topics.size(); ++i) {
           fmt::print("SUBSCRIBE topic='{}' reqQoS={}\n", pkt.subscribe.topics[i],
-                     (int)pkt.subscribe.reqQoS[i]);
+                     pkt.subscribe.reqQoS[i]);
         }
         write(ctx, std::move(resp));
         break;
       }
       case Type::PUBLISH: {
-        fmt::print("PUBLISH topic='{}' qos={} payloadLen={}\n", pkt.publish.topic,
-                   (int)pkt.publish.qos, pkt.publish.payload.size());
+        fmt::print("PUBLISH topic='{}' qos={} payloadLen={}\n", pkt.publish.topic, pkt.publish.qos,
+                   pkt.publish.payload.size());
         if (pkt.publish.qos == 1) {
           Packet resp{Type::PUBACK};
           resp.puback.pktId = pkt.publish.pktId;
@@ -380,12 +395,12 @@ public:
     ctx->fireClose();
   }
 
-private:
+ private:
   uint8_t proto_{4};
 };
 
 class PipelineFactory final : public wangle::PipelineFactory<Pipeline> {
-public:
+ public:
   Pipeline::Ptr newPipeline(std::shared_ptr<folly::AsyncTransport> sock) override {
     auto pipeline = Pipeline::create();
     pipeline->addBack(wangle::AsyncSocketHandler(sock));
