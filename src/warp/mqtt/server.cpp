@@ -33,7 +33,7 @@ struct Message {
 };
 
 class Codec {
- public:
+public:
   static std::optional<Message> decode(folly::IOBufQueue& q) {
     if (q.chainLength() < 2) {
       return std::nullopt;
@@ -190,9 +190,10 @@ class Codec {
 
 class Handler final
     : public wangle::Handler<folly::IOBufQueue&, Message, Message, std::unique_ptr<folly::IOBuf>> {
- public:
-  using Context = typename wangle::Handler<folly::IOBufQueue&, Message, Message,
-                                           std::unique_ptr<folly::IOBuf>>::Context;
+public:
+  using Context = typename wangle::Handler<
+      folly::IOBufQueue&, Message, Message, std::unique_ptr<folly::IOBuf>>::Context;
+
   void read(Context* ctx, folly::IOBufQueue& q) override {
     for (;;) {
       auto msg = Codec::decode(q);
@@ -210,7 +211,7 @@ class Handler final
 };
 
 class Service final : public wangle::Service<Message, Message> {
- public:
+public:
   folly::Future<Message> operator()(Message msg) override {
     switch (msg.type) {
       case Type::Connect:
@@ -219,7 +220,8 @@ class Service final : public wangle::Service<Message, Message> {
         return folly::makeFuture<Message>(Message{.type = Type::None});
       case Type::Subscribe:
         return folly::makeFuture<Message>(
-            Message{.type = Type::SubAck, .id = msg.id, .topics = msg.topics});
+            Message{.type = Type::SubAck, .id = msg.id, .topics = msg.topics}
+        );
       case Type::PingReq:
         return folly::makeFuture<Message>(Message{.type = Type::PingResp});
       case Type::Disconnect:
@@ -234,7 +236,7 @@ class Service final : public wangle::Service<Message, Message> {
 using Pipeline = wangle::Pipeline<folly::IOBufQueue&, Message>;
 
 class PipelineFactory final : public wangle::PipelineFactory<Pipeline> {
- public:
+public:
   Pipeline::Ptr newPipeline(std::shared_ptr<folly::AsyncTransport> sock) override {
     auto pipeline = Pipeline::create();
     pipeline->addBack(wangle::AsyncSocketHandler(sock));
@@ -245,10 +247,11 @@ class PipelineFactory final : public wangle::PipelineFactory<Pipeline> {
     return pipeline;
   }
 
- private:
+private:
   wangle::ExecutorFilter<Message, Message> service_{
       std::make_shared<folly::CPUThreadPoolExecutor>(std::max(4u, folly::hardware_concurrency())),
-      std::make_shared<Service>()};
+      std::make_shared<Service>()
+  };
 };
 
 Server::Server() {}

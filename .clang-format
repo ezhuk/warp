@@ -1,3 +1,5 @@
 BasedOnStyle: Google
 ColumnLimit: 100
 Standard: c++20
+AccessModifierOffset: -2
+AlignAfterOpenBracket: BlockIndent
