@@ -237,6 +237,11 @@ using Pipeline = wangle::Pipeline<folly::IOBufQueue&, Message>;
 
 class PipelineFactory final : public wangle::PipelineFactory<Pipeline> {
 public:
+  explicit PipelineFactory(size_t threads)
+      : service_(
+            std::make_shared<folly::CPUThreadPoolExecutor>(threads), std::make_shared<Service>()
+        ) {}
+
   Pipeline::Ptr newPipeline(std::shared_ptr<folly::AsyncTransport> sock) override {
     auto pipeline = Pipeline::create();
     pipeline->addBack(wangle::AsyncSocketHandler(sock));
@@ -248,20 +253,19 @@ public:
   }
 
 private:
-  wangle::ExecutorFilter<Message, Message> service_{
-      std::make_shared<folly::CPUThreadPoolExecutor>(std::max(4u, folly::hardware_concurrency())),
-      std::make_shared<Service>()
-  };
+  wangle::ExecutorFilter<Message, Message> service_;
 };
 
-Server::Server() {}
+Server::Server(ServerOptions options)
+    : options_(std::make_shared<ServerOptions>(std::move(options))) {}
+
 Server::~Server() {}
 
 void Server::start() {
   fmt::print("Server::start\n");
   wangle::ServerBootstrap<Pipeline> server;
-  server.childPipeline(std::make_shared<PipelineFactory>());
-  server.bind(1883);
+  server.childPipeline(std::make_shared<PipelineFactory>(options_->threads));
+  server.bind(options_->port);
   server.waitForStop();
 }
 }  // namespace warp::mqtt
