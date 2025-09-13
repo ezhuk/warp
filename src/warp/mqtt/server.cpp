@@ -256,8 +256,7 @@ private:
   wangle::ExecutorFilter<Message, Message> service_;
 };
 
-Server::Server(ServerOptions options)
-    : options_(std::make_shared<ServerOptions>(std::move(options))) {}
+Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {}
 
 Server::~Server() {}
 

@@ -6,7 +6,7 @@
 int main() {
   fmt::print("OK\n");
   warp::mqtt::ServerOptions options;
-  warp::mqtt::Server server(std::move(options));
+  warp::mqtt::Server server(options);
   std::thread t([&]() { server.start(); });
   t.join();
   return 0;

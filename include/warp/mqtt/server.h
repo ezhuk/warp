@@ -13,7 +13,7 @@ public:
 
 class Server final {
 public:
-  explicit Server(ServerOptions options);
+  explicit Server(ServerOptions const& options);
   virtual ~Server();
 
   void start();
