@@ -268,4 +268,6 @@ void Server::start() {
   server.bind(options_->port);
   server.waitForStop();
 }
+
+void Server::stop() {}
 }  // namespace warp::mqtt
