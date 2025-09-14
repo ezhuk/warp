@@ -256,17 +256,21 @@ private:
   wangle::ExecutorFilter<Message, Message> service_;
 };
 
+namespace {
+std::shared_ptr<wangle::ServerBootstrap<Pipeline>> server;
+}
+
 Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {}
 
 Server::~Server() {}
 
 void Server::start() {
-  fmt::print("Server::start\n");
-  wangle::ServerBootstrap<Pipeline> server;
-  server.childPipeline(std::make_shared<PipelineFactory>(options_->threads));
-  server.bind(options_->port);
-  server.waitForStop();
+  server = std::make_shared<wangle::ServerBootstrap<Pipeline>>();
+  server->childPipeline(std::make_shared<PipelineFactory>(options_->threads));
+  server->bind(options_->port);
+  server->waitForStop();
+  server.reset();
 }
 
-void Server::stop() {}
+void Server::stop() { server->stop(); }
 }  // namespace warp::mqtt
