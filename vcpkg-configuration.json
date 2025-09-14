@@ -1,0 +1,6 @@
+{
+  "binarySources": [
+    "clear",
+    "files,.vcpkg-cache,readwrite"
+  ]
+}
