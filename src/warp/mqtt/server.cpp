@@ -1,6 +1,8 @@
 #include <fmt/format.h>
 #include <folly/Varint.h>
 #include <folly/executors/CPUThreadPoolExecutor.h>
+#include <folly/io/async/AsyncSignalHandler.h>
+#include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/system/HardwareConcurrency.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
@@ -9,6 +11,8 @@
 #include <wangle/service/ExecutorFilter.h>
 #include <wangle/service/ServerDispatcher.h>
 #include <warp/mqtt/server.h>
+
+#include <csignal>
 
 namespace warp::mqtt {
 enum class Type : uint8_t {
@@ -257,19 +261,47 @@ private:
 };
 
 namespace {
-std::shared_ptr<wangle::ServerBootstrap<Pipeline>> server;
-}
+class SignalHandler final : private folly::ScopedEventBaseThread,
+                            private folly::AsyncSignalHandler {
+public:
+  explicit SignalHandler(Server* server)
+      : folly::ScopedEventBaseThread(),
+        folly::AsyncSignalHandler(this->folly::ScopedEventBaseThread::getEventBase()),
+        server_(server) {
+    for (auto signal : {SIGINT, SIGTERM}) {
+      registerSignalHandler(signal);
+    }
+  }
 
-Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {}
+private:
+  void signalReceived(int) noexcept override { server_->stop(); }
+
+  Server* const server_{nullptr};
+};
+
+std::shared_ptr<wangle::ServerBootstrap<Pipeline>> server;
+std::unique_ptr<SignalHandler> signal;
+}  // namespace
+
+Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {
+  sigset_t set;
+  sigemptyset(&set);
+  for (auto signal : {SIGINT, SIGTERM}) {
+    sigaddset(&set, signal);
+  }
+  pthread_sigmask(SIG_BLOCK, &set, nullptr);
+}
 
 Server::~Server() {}
 
 void Server::start() {
+  signal = std::make_unique<SignalHandler>(this);
   server = std::make_shared<wangle::ServerBootstrap<Pipeline>>();
   server->childPipeline(std::make_shared<PipelineFactory>(options_->threads));
   server->bind(options_->port);
   server->waitForStop();
   server.reset();
+  signal.reset();
 }
 
 void Server::stop() { server->stop(); }
