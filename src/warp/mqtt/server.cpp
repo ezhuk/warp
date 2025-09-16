@@ -1,4 +1,5 @@
 #include <fmt/format.h>
+#include <folly/Function.h>
 #include <folly/Varint.h>
 #include <folly/executors/CPUThreadPoolExecutor.h>
 #include <folly/io/async/AsyncSignalHandler.h>
@@ -12,7 +13,7 @@
 #include <wangle/service/ServerDispatcher.h>
 #include <warp/mqtt/server.h>
 
-#include <csignal>
+#include <span>
 
 namespace warp::mqtt {
 enum class Type : uint8_t {
@@ -264,38 +265,48 @@ namespace {
 class SignalHandler final : private folly::ScopedEventBaseThread,
                             private folly::AsyncSignalHandler {
 public:
-  explicit SignalHandler(Server* server)
+  using SignalCallback = folly::Function<void(int)>;
+
+  SignalHandler(std::span<int const> signals, SignalCallback func)
       : folly::ScopedEventBaseThread(),
         folly::AsyncSignalHandler(this->folly::ScopedEventBaseThread::getEventBase()),
-        server_(server) {
-    for (auto signal : {SIGINT, SIGTERM}) {
+        func_(std::move(func)) {
+    for (auto signal : signals) {
       registerSignalHandler(signal);
     }
   }
 
 private:
-  void signalReceived(int) noexcept override { server_->stop(); }
+  void signalReceived(int signum) noexcept override {
+    if (func_) {
+      func_(signum);
+    }
+  }
 
-  Server* const server_{nullptr};
+  SignalCallback func_;
 };
+
+int maskSignals(std::span<int const> signals, bool block = true) {
+  sigset_t set;
+  sigemptyset(&set);
+  for (auto signal : signals) {
+    sigaddset(&set, signal);
+  }
+  return pthread_sigmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, nullptr);
+}
 
 std::shared_ptr<wangle::ServerBootstrap<Pipeline>> server;
 std::unique_ptr<SignalHandler> signal;
 }  // namespace
 
 Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {
-  sigset_t set;
-  sigemptyset(&set);
-  for (auto signal : {SIGINT, SIGTERM}) {
-    sigaddset(&set, signal);
-  }
-  pthread_sigmask(SIG_BLOCK, &set, nullptr);
+  maskSignals(options_->signals);
 }
 
 Server::~Server() {}
 
 void Server::start() {
-  signal = std::make_unique<SignalHandler>(this);
+  signal = std::make_unique<SignalHandler>(options_->signals, [this](int) { this->stop(); });
   server = std::make_shared<wangle::ServerBootstrap<Pipeline>>();
   server->childPipeline(std::make_shared<PipelineFactory>(options_->threads));
   server->bind(options_->port);
