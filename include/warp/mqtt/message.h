@@ -6,15 +6,20 @@
 namespace warp::mqtt {
 enum class Type : uint8_t {
   None = 0,
-  Connect = 1,
-  ConnAck = 2,
-  Publish = 3,
-  PubAck = 4,
-  Subscribe = 8,
-  SubAck = 9,
-  PingReq = 12,
-  PingResp = 13,
-  Disconnect = 14,
+  Connect,
+  ConnAck,
+  Publish,
+  PubAck,
+  PubRec,
+  PubRel,
+  PubComp,
+  Subscribe,
+  SubAck,
+  Unsubscribe,
+  UnsubAck,
+  PingReq,
+  PingResp,
+  Disconnect,
 };
 
 struct Message {
