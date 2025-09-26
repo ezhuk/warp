@@ -43,23 +43,25 @@ public:
 class Service final : public wangle::Service<Message, Message> {
 public:
   folly::Future<Message> operator()(Message msg) override {
-    switch (msg.type) {
-      case Type::Connect:
-        return folly::makeFuture<Message>(Message{.type = Type::ConnAck});
-      case Type::Publish:
-        return folly::makeFuture<Message>(Message{.type = Type::None});
-      case Type::Subscribe:
-        return folly::makeFuture<Message>(
-            Message{.type = Type::SubAck, .id = msg.id, .topics = msg.topics}
-        );
-      case Type::PingReq:
-        return folly::makeFuture<Message>(Message{.type = Type::PingResp});
-      case Type::Disconnect:
-        return folly::makeFuture<Message>(Message{.type = Type::None});
-      default:
-        break;
-    }
-    return folly::makeFuture<Message>(Message{.type = Type::None});
+    return std::visit(
+        [](auto&& m) -> folly::Future<Message> {
+          using T = std::decay_t<decltype(m)>;
+          if constexpr (std::is_same_v<T, Connect>) {
+            return folly::makeFuture<Message>(
+                ConnAck::Builder{}.withSession(0).withReason(0).build()
+            );
+          } else if constexpr (std::is_same_v<T, Subscribe>) {
+            return folly::makeFuture<Message>(
+                SubAck::Builder{}.withPacketId(m.head.packetId).withCodesFrom(m).build()
+            );
+          } else if constexpr (std::is_same_v<T, PingReq>) {
+            return folly::makeFuture<Message>(PingResp::Builder{}.build());
+          } else {
+            return folly::makeFuture<Message>(None{});
+          }
+        },
+        std::move(msg)
+    );
   }
 };
 
