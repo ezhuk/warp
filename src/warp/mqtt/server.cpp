@@ -50,6 +50,14 @@ public:
             return folly::makeFuture<Message>(
                 ConnAck::Builder{}.withSession(0).withReason(0).build()
             );
+          } else if constexpr (std::is_same_v<T, Publish>) {
+            if (0 == m.head.qos) {
+              return folly::makeFuture<Message>(None{});
+            } else {
+              return folly::makeFuture<Message>(
+                  PubAck::Builder{}.withPacketId(m.head.packetId).build()
+              );
+            }
           } else if constexpr (std::is_same_v<T, Subscribe>) {
             return folly::makeFuture<Message>(
                 SubAck::Builder{}.withPacketId(m.head.packetId).withCodesFrom(m).build()

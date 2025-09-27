@@ -30,6 +30,16 @@ std::optional<Message> Codec::decode(folly::IOBufQueue& q) {
       if (!msg) return std::nullopt;
       return Message{*msg};
     }
+    case Type::Publish: {
+      auto msg = Publish::decode(head, cur);
+      if (!msg) return std::nullopt;
+      return Message{std::move(*msg)};
+    }
+    case Type::PubAck: {
+      auto msg = PubAck::decode(head, cur);
+      if (!msg) return std::nullopt;
+      return Message{*msg};
+    }
     case Type::Subscribe: {
       auto msg = Subscribe::decode(head, cur);
       if (!msg) return std::nullopt;
