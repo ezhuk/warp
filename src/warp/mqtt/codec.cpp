@@ -50,6 +50,16 @@ std::optional<Message> Codec::decode(folly::IOBufQueue& q) {
       if (!msg) return std::nullopt;
       return Message{std::move(*msg)};
     }
+    case Type::Unsubscribe: {
+      auto msg = Unsubscribe::decode(head, cur);
+      if (!msg) return std::nullopt;
+      return Message{std::move(*msg)};
+    }
+    case Type::UnsubAck: {
+      auto msg = UnsubAck::decode(head, cur);
+      if (!msg) return std::nullopt;
+      return Message{*msg};
+    }
     case Type::PingReq: {
       auto msg = PingReq::decode(head, cur);
       if (!msg) return std::nullopt;
@@ -57,6 +67,11 @@ std::optional<Message> Codec::decode(folly::IOBufQueue& q) {
     }
     case Type::PingResp: {
       auto msg = PingResp::decode(head, cur);
+      if (!msg) return std::nullopt;
+      return Message{*msg};
+    }
+    case Type::Disconnect: {
+      auto msg = Disconnect::decode(head, cur);
       if (!msg) return std::nullopt;
       return Message{*msg};
     }
