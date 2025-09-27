@@ -40,6 +40,21 @@ std::optional<Message> Codec::decode(folly::IOBufQueue& q) {
       if (!msg) return std::nullopt;
       return Message{*msg};
     }
+    case Type::PubRec: {
+      auto msg = PubRec::decode(head, cur);
+      if (!msg) return std::nullopt;
+      return Message{*msg};
+    }
+    case Type::PubRel: {
+      auto msg = PubRel::decode(head, cur);
+      if (!msg) return std::nullopt;
+      return Message{*msg};
+    }
+    case Type::PubComp: {
+      auto msg = PubComp::decode(head, cur);
+      if (!msg) return std::nullopt;
+      return Message{*msg};
+    }
     case Type::Subscribe: {
       auto msg = Subscribe::decode(head, cur);
       if (!msg) return std::nullopt;

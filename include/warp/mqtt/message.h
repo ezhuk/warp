@@ -407,6 +407,117 @@ struct PubAck {
   }
 };
 
+struct PubRec {
+  struct Header {
+    uint16_t packetId{0};
+  };
+
+  struct Builder final {
+    uint16_t packetId_{0};
+
+    Builder& withPacketId(uint16_t id) {
+      packetId_ = id;
+      return *this;
+    }
+
+    PubRec build() const {
+      PubRec msg;
+      msg.head.packetId = packetId_;
+      return msg;
+    }
+  };
+
+  Header head{};
+
+  void encode(folly::io::QueueAppender& a) const {
+    writeFixedHeader(a, Type::PubRec, Flags(0), 2u);
+    a.writeBE<uint16_t>(head.packetId);
+  }
+
+  static std::optional<PubRec> decode(FixedHeader const& head, folly::io::Cursor& cur) {
+    if (((head.data >> 4) & 0x0F) != static_cast<uint8_t>(Type::PubRec)) return std::nullopt;
+    if ((head.data & 0x0F) != 0x00) return std::nullopt;
+    if (head.size != 2) return std::nullopt;
+    PubRec m;
+    m.head.packetId = cur.readBE<uint16_t>();
+    return m;
+  }
+};
+
+struct PubRel {
+  struct Header {
+    uint16_t packetId{0};
+  };
+
+  struct Builder final {
+    uint16_t packetId_{0};
+
+    Builder& withPacketId(uint16_t id) {
+      packetId_ = id;
+      return *this;
+    }
+
+    PubRel build() const {
+      PubRel msg;
+      msg.head.packetId = packetId_;
+      return msg;
+    }
+  };
+
+  Header head{};
+
+  void encode(folly::io::QueueAppender& a) const {
+    writeFixedHeader(a, Type::PubRel, Flags(2), 2u);
+    a.writeBE<uint16_t>(head.packetId);
+  }
+
+  static std::optional<PubRel> decode(FixedHeader const& head, folly::io::Cursor& cur) {
+    if (((head.data >> 4) & 0x0F) != static_cast<uint8_t>(Type::PubRel)) return std::nullopt;
+    if ((head.data & 0x0F) != 0x02) return std::nullopt;
+    if (head.size != 2) return std::nullopt;
+    PubRel msg;
+    msg.head.packetId = cur.readBE<uint16_t>();
+    return msg;
+  }
+};
+
+struct PubComp {
+  struct Header {
+    uint16_t packetId{0};
+  };
+
+  struct Builder final {
+    uint16_t packetId_{0};
+
+    Builder& withPacketId(uint16_t id) {
+      packetId_ = id;
+      return *this;
+    }
+
+    PubComp build() const {
+      PubComp msg;
+      msg.head.packetId = packetId_;
+      return msg;
+    }
+  };
+
+  Header head{};
+
+  void encode(folly::io::QueueAppender& a) const {
+    writeFixedHeader(a, Type::PubComp, Flags(0), 2u);
+    a.writeBE<uint16_t>(head.packetId);
+  }
+
+  static std::optional<PubComp> decode(FixedHeader const& head, folly::io::Cursor& cur) {
+    if (((head.data >> 4) & 0x0F) != static_cast<uint8_t>(Type::PubComp)) return std::nullopt;
+    if ((head.data & 0x0F) != 0x00) return std::nullopt;
+    if (head.size != 2) return std::nullopt;
+    PubComp msg;
+    msg.head.packetId = cur.readBE<uint16_t>();
+    return msg;
+  }
+};
+
 struct Subscribe {
   struct Topic {
     std::string filter;
@@ -707,6 +818,6 @@ struct None {
 };
 
 using Message = std::variant<
-    Connect, ConnAck, Publish, PubAck, Subscribe, SubAck, Unsubscribe, UnsubAck, PingReq, PingResp,
-    Disconnect, None>;
+    Connect, ConnAck, Publish, PubAck, PubRec, PubRel, PubComp, Subscribe, SubAck, Unsubscribe,
+    UnsubAck, PingReq, PingResp, Disconnect, None>;
 }  // namespace warp::mqtt
