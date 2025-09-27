@@ -68,8 +68,6 @@ public:
             );
           } else if constexpr (std::is_same_v<T, PingReq>) {
             return folly::makeFuture<Message>(PingResp::Builder{}.build());
-          } else if constexpr (std::is_same_v<T, Disconnect>) {
-            return folly::makeFuture<Message>(None{});
           } else {
             return folly::makeFuture<Message>(None{});
           }
