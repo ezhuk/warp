@@ -50,9 +50,28 @@ public:
             return folly::makeFuture<Message>(
                 ConnAck::Builder{}.withSession(0).withReason(0).build()
             );
+          } else if constexpr (std::is_same_v<T, Publish>) {
+            if (m.head.qos == 1) {
+              return folly::makeFuture<Message>(
+                  PubAck::Builder{}.withPacketId(m.head.packetId).build()
+              );
+            } else if (m.head.qos == 2) {
+              return folly::makeFuture<Message>(
+                  PubRec::Builder{}.withPacketId(m.head.packetId).build()
+              );
+            }
+            return folly::makeFuture<Message>(None{});
+          } else if constexpr (std::is_same_v<T, PubRel>) {
+            return folly::makeFuture<Message>(
+                PubComp::Builder{}.withPacketId(m.head.packetId).build()
+            );
           } else if constexpr (std::is_same_v<T, Subscribe>) {
             return folly::makeFuture<Message>(
                 SubAck::Builder{}.withPacketId(m.head.packetId).withCodesFrom(m).build()
+            );
+          } else if constexpr (std::is_same_v<T, Unsubscribe>) {
+            return folly::makeFuture<Message>(
+                UnsubAck::Builder{}.withPacketId(m.head.packetId).build()
             );
           } else if constexpr (std::is_same_v<T, PingReq>) {
             return folly::makeFuture<Message>(PingResp::Builder{}.build());

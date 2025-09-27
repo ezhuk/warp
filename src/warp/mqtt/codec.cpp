@@ -18,38 +18,49 @@ std::optional<Message> Codec::decode(folly::IOBufQueue& q) {
   folly::io::Cursor cur(frame.get());
   cur.skip(size);
 
+  auto decodeAs = [&](auto tag) -> std::optional<Message> {
+    using T = decltype(tag);
+    auto msg = T::decode(head, cur);
+    if (!msg) {
+      return std::nullopt;
+    }
+    if constexpr (std::is_trivially_copy_constructible_v<T>) {
+      return Message{*msg};
+    } else {
+      return Message{std::move(*msg)};
+    }
+  };
+
   auto const type = static_cast<Type>((head.data >> 4) & 0x0F);
   switch (type) {
-    case Type::Connect: {
-      auto msg = Connect::decode(head, cur);
-      if (!msg) return std::nullopt;
-      return Message{std::move(*msg)};
-    }
-    case Type::ConnAck: {
-      auto msg = ConnAck::decode(head, cur);
-      if (!msg) return std::nullopt;
-      return Message{*msg};
-    }
-    case Type::Subscribe: {
-      auto msg = Subscribe::decode(head, cur);
-      if (!msg) return std::nullopt;
-      return Message{std::move(*msg)};
-    }
-    case Type::SubAck: {
-      auto msg = SubAck::decode(head, cur);
-      if (!msg) return std::nullopt;
-      return Message{std::move(*msg)};
-    }
-    case Type::PingReq: {
-      auto msg = PingReq::decode(head, cur);
-      if (!msg) return std::nullopt;
-      return Message{*msg};
-    }
-    case Type::PingResp: {
-      auto msg = PingResp::decode(head, cur);
-      if (!msg) return std::nullopt;
-      return Message{*msg};
-    }
+    case Type::Connect:
+      return decodeAs(Connect{});
+    case Type::ConnAck:
+      return decodeAs(ConnAck{});
+    case Type::Publish:
+      return decodeAs(Publish{});
+    case Type::PubAck:
+      return decodeAs(PubAck{});
+    case Type::PubRec:
+      return decodeAs(PubRec{});
+    case Type::PubRel:
+      return decodeAs(PubRel{});
+    case Type::PubComp:
+      return decodeAs(PubComp{});
+    case Type::Subscribe:
+      return decodeAs(Subscribe{});
+    case Type::SubAck:
+      return decodeAs(SubAck{});
+    case Type::Unsubscribe:
+      return decodeAs(Unsubscribe{});
+    case Type::UnsubAck:
+      return decodeAs(UnsubAck{});
+    case Type::PingReq:
+      return decodeAs(PingReq{});
+    case Type::PingResp:
+      return decodeAs(PingResp{});
+    case Type::Disconnect:
+      return decodeAs(Disconnect{});
     default:
       return std::nullopt;
   }
