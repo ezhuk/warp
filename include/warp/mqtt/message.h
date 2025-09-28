@@ -147,7 +147,7 @@ struct Connect {
       return *this;
     }
 
-    Connect buid() const {
+    Connect build() const {
       return Connect{
           .head{
               .head{.data = static_cast<uint8_t>(Type::Connect) << 4, .size = 0},
