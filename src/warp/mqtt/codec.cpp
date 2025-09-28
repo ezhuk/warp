@@ -66,7 +66,7 @@ std::optional<Message> Codec::decode(folly::IOBufQueue& q) {
   }
 }
 
-std::unique_ptr<folly::IOBuf> Codec::encode(const Message& msg) {
+std::unique_ptr<folly::IOBuf> Codec::encode(Message const& msg) {
   folly::IOBufQueue q(folly::IOBufQueue::cacheChainLength());
   folly::io::QueueAppender a(&q, 1024);
   std::visit([&](auto const& m) { m.encode(a); }, msg);
