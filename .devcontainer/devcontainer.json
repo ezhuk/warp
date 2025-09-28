@@ -14,5 +14,8 @@
     "VCPKG_ROOT": "/usr/local/vcpkg",
     "CMAKE_TOOLCHAIN_FILE": "/usr/local/vcpkg/scripts/buildsystems/vcpkg.cmake"
   },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
   "postCreateCommand": "bash .devcontainer/post-create.sh"
 }
