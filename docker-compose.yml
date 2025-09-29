@@ -1,0 +1,7 @@
+services:
+  warp:
+    build: .
+    image: warp:latest
+    ports:
+      - "1883:1883"
+    restart: unless-stopped

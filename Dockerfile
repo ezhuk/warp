@@ -18,10 +18,9 @@ COPY CMakeLists.txt CMakePresets.json ./
 COPY cmake/ ./cmake/
 COPY include/ ./include/
 COPY src/ ./src/
-COPY tests/ ./tests/
 COPY vcpkg.json ./
 
-RUN cmake --preset ninja-multi-vcpkg && \
+RUN cmake --preset ninja-multi-vcpkg -DBUILD_TESTS=OFF && \
     cmake --build --preset prod
 
 FROM ubuntu:latest
