@@ -35,6 +35,10 @@ TEST_F(MessageTest, ConnectTest) {
                        .withClient("TestClient")
                        .build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
   EXPECT_EQ(dec->head.level, msg.head.level);
   EXPECT_TRUE((dec->head.flags & 0x02) != 0);
@@ -45,6 +49,10 @@ TEST_F(MessageTest, ConnectTest) {
 TEST_F(MessageTest, ConnAckTest) {
   auto const msg = warp::mqtt::ConnAck::Builder{}.withSession(1).withReason(0).build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
   EXPECT_EQ(dec->head.session, msg.head.session);
   EXPECT_EQ(dec->head.reason, msg.head.reason);
@@ -54,6 +62,10 @@ TEST_F(MessageTest, PublishTest) {
   auto const msg =
       warp::mqtt::Publish::Builder{}.withTopic("test/foo").withPayload("TEST").withQos(0).build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
   EXPECT_EQ(dec->head.qos, msg.head.qos);
   EXPECT_EQ(dec->head.topic, msg.head.topic);
@@ -63,6 +75,10 @@ TEST_F(MessageTest, PublishTest) {
 TEST_F(MessageTest, PubAckTest) {
   auto const msg = warp::mqtt::PubAck::Builder{}.withPacketId(7).build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
   EXPECT_EQ(dec->head.packetId, msg.head.packetId);
 }
@@ -70,6 +86,10 @@ TEST_F(MessageTest, PubAckTest) {
 TEST_F(MessageTest, PubRecTest) {
   auto const msg = warp::mqtt::PubRec::Builder{}.withPacketId(9).build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
   EXPECT_EQ(dec->head.packetId, msg.head.packetId);
 }
@@ -77,6 +97,10 @@ TEST_F(MessageTest, PubRecTest) {
 TEST_F(MessageTest, PubRelTest) {
   auto const msg = warp::mqtt::PubRel::Builder{}.withPacketId(11).build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
   EXPECT_EQ(dec->head.packetId, msg.head.packetId);
 }
@@ -84,6 +108,10 @@ TEST_F(MessageTest, PubRelTest) {
 TEST_F(MessageTest, PubCompTest) {
   auto const msg = warp::mqtt::PubComp::Builder{}.withPacketId(13).build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
   EXPECT_EQ(dec->head.packetId, msg.head.packetId);
 }
@@ -95,6 +123,10 @@ TEST_F(MessageTest, SubscribeTest) {
                        .addTopic("test/bar", 1)
                        .build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
   EXPECT_EQ(dec->head.packetId, msg.head.packetId);
   ASSERT_EQ(dec->data.topics.size(), msg.data.topics.size());
@@ -107,6 +139,10 @@ TEST_F(MessageTest, SubscribeTest) {
 TEST_F(MessageTest, SubAckTest) {
   auto const msg = warp::mqtt::SubAck::Builder{}.withPacketId(21).addCode(0).addCode(1).build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
   EXPECT_EQ(dec->head.packetId, msg.head.packetId);
   ASSERT_EQ(dec->data.codes.size(), msg.data.codes.size());
@@ -121,6 +157,10 @@ TEST_F(MessageTest, UnsubscribeTest) {
                        .addTopic("test/bar")
                        .build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
   EXPECT_EQ(dec->head.packetId, msg.head.packetId);
   ASSERT_EQ(dec->data.topics.size(), 2u);
@@ -131,6 +171,10 @@ TEST_F(MessageTest, UnsubscribeTest) {
 TEST_F(MessageTest, UnsubAckTest) {
   auto const msg = warp::mqtt::UnsubAck::Builder{}.withPacketId(33).build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
   EXPECT_EQ(dec->head.packetId, msg.head.packetId);
 }
@@ -138,17 +182,29 @@ TEST_F(MessageTest, UnsubAckTest) {
 TEST_F(MessageTest, PingReqTest) {
   auto const msg = warp::mqtt::PingReq::Builder{}.build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
 }
 
 TEST_F(MessageTest, PingRespTest) {
   auto const msg = warp::mqtt::PingResp::Builder{}.build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
 }
 
 TEST_F(MessageTest, DisconnectTest) {
   auto const msg = warp::mqtt::Disconnect::Builder{}.build();
   auto dec = roundtrip(msg);
+  if (!dec) {
+    FAIL() << "roundtrip() returned std::nullopt";
+    return;
+  }
   ASSERT_TRUE(dec.has_value());
 }
