@@ -47,9 +47,8 @@ public:
         [](auto&& m) -> folly::Future<Message> {
           using T = std::decay_t<decltype(m)>;
           if constexpr (std::is_same_v<T, Connect>) {
-            return folly::makeFuture<Message>(
-                ConnAck::Builder{}.withSession(0).withReason(0).build()
-            );
+            return folly::makeFuture<Message>(ConnAck::Builder{}.withSession(0).withReason(0).build(
+            ));
           } else if constexpr (std::is_same_v<T, Publish>) {
             if (m.head.qos == 1) {
               return folly::makeFuture<Message>(
@@ -82,6 +81,20 @@ public:
         std::move(msg)
     );
   }
+};
+
+class ServiceDispatcher : public wangle::HandlerAdapter<Message, Message> {
+public:
+  using Context = typename wangle::HandlerAdapter<Message, Message>::Context;
+
+  explicit ServiceDispatcher(Service* service) : service_(service) {}
+
+  void read(Context* ctx, Message in) override {
+    (*service_)(std::move(in)).thenValue([ctx](Message resp) { ctx->fireWrite(std::move(resp)); });
+  }
+
+private:
+  Service* service_;
 };
 
 using Pipeline = wangle::Pipeline<folly::IOBufQueue&, Message>;
