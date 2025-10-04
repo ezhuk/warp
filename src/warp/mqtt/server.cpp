@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 #include <folly/Function.h>
 #include <folly/executors/CPUThreadPoolExecutor.h>
+#include <folly/futures/Future.h>
 #include <folly/io/async/AsyncSignalHandler.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/system/HardwareConcurrency.h>
@@ -10,8 +11,6 @@
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/EventBaseHandler.h>
 #include <wangle/channel/Pipeline.h>
-#include <wangle/service/ExecutorFilter.h>
-#include <wangle/service/ServerDispatcher.h>
 
 #include <span>
 
@@ -40,84 +39,82 @@ public:
   }
 };
 
-class Service final : public wangle::Service<Message, Message> {
+class Service final {
 public:
-  folly::Future<Message> operator()(Message msg) override {
-    return std::visit(
-        [](auto&& m) -> folly::Future<Message> {
-          using T = std::decay_t<decltype(m)>;
-          if constexpr (std::is_same_v<T, Connect>) {
-            return folly::makeFuture<Message>(ConnAck::Builder{}.withSession(0).withReason(0).build(
-            ));
-          } else if constexpr (std::is_same_v<T, Publish>) {
-            if (m.head.qos == 1) {
-              return folly::makeFuture<Message>(
-                  PubAck::Builder{}.withPacketId(m.head.packetId).build()
-              );
-            } else if (m.head.qos == 2) {
-              return folly::makeFuture<Message>(
-                  PubRec::Builder{}.withPacketId(m.head.packetId).build()
-              );
+  using Context = typename wangle::HandlerAdapter<Message, Message>::Context;
+
+  explicit Service(size_t threads)
+      : executor_(std::make_shared<folly::CPUThreadPoolExecutor>(threads)) {}
+
+  folly::Future<Message> operator()(Context* ctx, Message msg) {
+    return folly::via(executor_.get(), [ctx, msg = std::move(msg)]() mutable -> Message {
+      return std::visit(
+          [ctx](auto&& m) -> Message {
+            using T = std::decay_t<decltype(m)>;
+            if constexpr (std::is_same_v<T, Connect>) {
+              return ConnAck::Builder{}.withSession(0).withReason(0).build();
+            } else if constexpr (std::is_same_v<T, Publish>) {
+              if (m.head.qos == 1) {
+                return PubAck::Builder{}.withPacketId(m.head.packetId).build();
+              } else if (m.head.qos == 2) {
+                return PubRec::Builder{}.withPacketId(m.head.packetId).build();
+              }
+              return None{};
+            } else if constexpr (std::is_same_v<T, PubRel>) {
+              return PubComp::Builder{}.withPacketId(m.head.packetId).build();
+            } else if constexpr (std::is_same_v<T, Subscribe>) {
+              return SubAck::Builder{}.withPacketId(m.head.packetId).withCodesFrom(m).build();
+            } else if constexpr (std::is_same_v<T, Unsubscribe>) {
+              return UnsubAck::Builder{}.withPacketId(m.head.packetId).build();
+            } else if constexpr (std::is_same_v<T, PingReq>) {
+              return PingResp::Builder{}.build();
+            } else {
+              return None{};
             }
-            return folly::makeFuture<Message>(None{});
-          } else if constexpr (std::is_same_v<T, PubRel>) {
-            return folly::makeFuture<Message>(
-                PubComp::Builder{}.withPacketId(m.head.packetId).build()
-            );
-          } else if constexpr (std::is_same_v<T, Subscribe>) {
-            return folly::makeFuture<Message>(
-                SubAck::Builder{}.withPacketId(m.head.packetId).withCodesFrom(m).build()
-            );
-          } else if constexpr (std::is_same_v<T, Unsubscribe>) {
-            return folly::makeFuture<Message>(
-                UnsubAck::Builder{}.withPacketId(m.head.packetId).build()
-            );
-          } else if constexpr (std::is_same_v<T, PingReq>) {
-            return folly::makeFuture<Message>(PingResp::Builder{}.build());
-          } else {
-            return folly::makeFuture<Message>(None{});
-          }
-        },
-        std::move(msg)
-    );
+          },
+          std::move(msg)
+      );
+    });
   }
+
+private:
+  std::shared_ptr<folly::CPUThreadPoolExecutor> executor_;
 };
 
 class ServiceDispatcher : public wangle::HandlerAdapter<Message, Message> {
 public:
   using Context = typename wangle::HandlerAdapter<Message, Message>::Context;
 
-  explicit ServiceDispatcher(Service* service) : service_(service) {}
+  explicit ServiceDispatcher(std::shared_ptr<Service> service) : service_(std::move(service)) {}
 
-  void read(Context* ctx, Message in) override {
-    (*service_)(std::move(in)).thenValue([ctx](Message resp) { ctx->fireWrite(std::move(resp)); });
+  void read(Context* ctx, Message req) override {
+    (*service_)(ctx, std::move(req)).thenValue([ctx](Message res) {
+      ctx->fireWrite(std::move(res));
+    });
   }
 
 private:
-  Service* service_;
+  std::shared_ptr<Service> service_;
 };
 
 using Pipeline = wangle::Pipeline<folly::IOBufQueue&, Message>;
 
 class PipelineFactory final : public wangle::PipelineFactory<Pipeline> {
 public:
-  explicit PipelineFactory(size_t threads)
-      : service_(
-            std::make_shared<folly::CPUThreadPoolExecutor>(threads), std::make_shared<Service>()
-        ) {}
+  explicit PipelineFactory(size_t threads) : service_(std::make_shared<Service>(threads)) {}
 
   Pipeline::Ptr newPipeline(std::shared_ptr<folly::AsyncTransport> sock) override {
     auto pipeline = Pipeline::create();
     pipeline->addBack(wangle::AsyncSocketHandler(sock));
     pipeline->addBack(wangle::EventBaseHandler());
     pipeline->addBack(Handler());
-    pipeline->addBack(wangle::MultiplexServerDispatcher<Message, Message>(&service_));
+    pipeline->addBack(ServiceDispatcher(service_));
     pipeline->finalize();
     return pipeline;
   }
 
 private:
-  wangle::ExecutorFilter<Message, Message> service_;
+  std::shared_ptr<Service> service_;
 };
 
 namespace {
