@@ -1,5 +1,6 @@
 {
   "dependencies": [
+    "benchmark",
     "fmt",
     "folly",
     "gtest",
