@@ -3,7 +3,6 @@
 #include <fmt/format.h>
 #include <folly/Function.h>
 #include <folly/executors/CPUThreadPoolExecutor.h>
-#include <folly/futures/Future.h>
 #include <folly/io/async/AsyncSignalHandler.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/system/HardwareConcurrency.h>
