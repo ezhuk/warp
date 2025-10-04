@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(BUILD_BENCHMARKS "Build benchmarks" ON)
 option(BUILD_TESTS "Build tests" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
@@ -58,6 +59,10 @@ target_link_libraries(app
 set_target_properties(app PROPERTIES
   OUTPUT_NAME "warp"
 )
+
+if(BUILD_BENCHMARKS)
+  add_subdirectory(benchmarks)
+endif()
 
 if(BUILD_TESTS)
   enable_testing()
