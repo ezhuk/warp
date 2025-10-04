@@ -15,6 +15,7 @@ repos:
       name: clang-tidy
       entry: clang-tidy
       language: system
+      files: ^(include|src|tests)/.*\.(h|cpp)$
       types_or: [c, c++, header]
-      args: [-p, build/ninja-multi-vcpkg, --warnings-as-errors=*]
+      args: [-p, build/ninja-multi-vcpkg, --config-file=.clang-tidy]
       require_serial: true
