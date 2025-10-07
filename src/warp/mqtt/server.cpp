@@ -18,6 +18,12 @@
 #include "warp/mqtt/codec.h"
 
 namespace warp::mqtt {
+namespace {
+struct DataTraits {
+  static inline const folly::RequestToken kToken{"warp.mqtt.context"};
+};
+}  // namespace
+
 class Handler final
     : public wangle::Handler<folly::IOBufQueue&, Message, Message, std::unique_ptr<folly::IOBuf>> {
 public:
@@ -27,12 +33,15 @@ public:
   Handler() : context_(std::make_shared<folly::RequestContext>()) {}
 
   void read(Context* ctx, folly::IOBufQueue& q) override {
+    folly::RequestContextScopeGuard guard(context_);
+    context_->setContextDataIfAbsent(
+        DataTraits::kToken, std::make_unique<folly::ImmutableRequestData<Context*>>(ctx)
+    );
     for (;;) {
       auto msg = Codec::decode(q);
       if (!msg) {
         break;
       }
-      folly::RequestContextScopeGuard guard(context_);
       ctx->fireRead(std::move(*msg));
     }
   }
@@ -48,8 +57,7 @@ private:
 
 class Service final : public wangle::Service<Message, Message> {
 public:
-  folly::Future<Message> operator()(Message msg) {
-    fmt::print("RequestContext={}\n", fmt::ptr(folly::RequestContext::try_get()));
+  folly::Future<Message> operator()(Message msg) override {
     return std::visit(
         [](auto&& m) -> folly::Future<Message> {
           using T = std::decay_t<decltype(m)>;
@@ -88,6 +96,16 @@ public:
         },
         std::move(msg)
     );
+  }
+
+private:
+  std::optional<Handler::Context*> getContext() const {
+    if (auto* rc = folly::RequestContext::try_get()) {
+      if (auto* rd = rc->getThreadCachedContextData<DataTraits>()) {
+        return static_cast<folly::ImmutableRequestData<Handler::Context*>*>(rd)->value();
+      }
+    }
+    return std::nullopt;
   }
 };
 
