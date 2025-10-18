@@ -4,7 +4,9 @@
 #include <folly/Function.h>
 #include <folly/executors/CPUThreadPoolExecutor.h>
 #include <folly/io/async/AsyncSignalHandler.h>
+#include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
+#include <folly/io/async/TimeoutManager.h>
 #include <folly/system/HardwareConcurrency.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
@@ -53,6 +55,7 @@ public:
 
 private:
   std::shared_ptr<folly::RequestContext> context_;
+  std::unique_ptr<folly::AsyncTimeout> timeout_;
 };
 
 class Service final : public wangle::Service<Message, Message> {
