@@ -22,7 +22,7 @@
 namespace warp::mqtt {
 namespace {
 struct DataTraits {
-  static inline const folly::RequestToken kToken{"warp.mqtt.context"};
+  static inline const folly::RequestToken kToken{"warp.mqtt.handler"};
 };
 }  // namespace
 
@@ -37,8 +37,18 @@ public:
   void read(Context* ctx, folly::IOBufQueue& q) override {
     folly::RequestContextScopeGuard guard(context_);
     context_->setContextDataIfAbsent(
-        DataTraits::kToken, std::make_unique<folly::ImmutableRequestData<Context*>>(ctx)
+        DataTraits::kToken, std::make_unique<folly::ImmutableRequestData<Handler*>>(this)
     );
+    if (!timeout_) {
+      timeout_ = folly::AsyncTimeout::make(
+          static_cast<folly::TimeoutManager&>(*ctx->getTransport()->getEventBase()),
+          [ctx]() noexcept { ctx->fireClose(); }
+      );
+    }
+    if (timeout_->isScheduled()) {
+      timeout_->cancelTimeout();
+    }
+    timeout_->scheduleTimeout(std::chrono::seconds(90));
     for (;;) {
       auto msg = Codec::decode(q);
       if (!msg) {
@@ -99,16 +109,6 @@ public:
         },
         std::move(msg)
     );
-  }
-
-private:
-  std::optional<Handler::Context*> getContext() const {
-    if (auto* rc = folly::RequestContext::try_get()) {
-      if (auto* rd = rc->getThreadCachedContextData<DataTraits>()) {
-        return static_cast<folly::ImmutableRequestData<Handler::Context*>*>(rd)->value();
-      }
-    }
-    return std::nullopt;
   }
 };
 
