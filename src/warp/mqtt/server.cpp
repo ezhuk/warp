@@ -36,25 +36,15 @@ public:
 
   void read(Context* ctx, folly::IOBufQueue& q) override {
     folly::RequestContextScopeGuard guard(context_);
-    context_->setContextDataIfAbsent(
-        DataTraits::kToken, std::make_unique<folly::ImmutableRequestData<Handler*>>(this)
-    );
-    if (!timeout_) {
-      timeout_ = folly::AsyncTimeout::make(
-          static_cast<folly::TimeoutManager&>(*ctx->getTransport()->getEventBase()),
-          [ctx]() noexcept { ctx->fireClose(); }
-      );
-    }
-    if (timeout_->isScheduled()) {
-      timeout_->cancelTimeout();
-    }
-    timeout_->scheduleTimeout(std::chrono::seconds(90));
     for (;;) {
       auto msg = Codec::decode(q);
       if (!msg) {
         break;
       }
       ctx->fireRead(std::move(*msg));
+    }
+    if (timeout_) {
+      timeout_->scheduleTimeout(std::chrono::seconds(90));
     }
   }
 
@@ -63,10 +53,42 @@ public:
     return ctx->fireWrite(std::move(out));
   }
 
+  void transportActive(Context* ctx) override {
+    context_->setContextDataIfAbsent(
+        DataTraits::kToken, std::make_unique<folly::ImmutableRequestData<Handler*>>(this)
+    );
+    if (!timeout_) {
+      timeout_ = folly::AsyncTimeout::schedule(
+          std::chrono::seconds(90),
+          static_cast<folly::TimeoutManager&>(*ctx->getTransport()->getEventBase()),
+          [ctx]() noexcept { ctx->fireClose(); }
+      );
+    }
+    ctx->fireTransportActive();
+  }
+
+  void transportInactive(Context* ctx) override {
+    timeout_.reset();
+    ctx->fireTransportInactive();
+  }
+
 private:
   std::shared_ptr<folly::RequestContext> context_;
   std::unique_ptr<folly::AsyncTimeout> timeout_;
 };
+
+namespace {
+Handler* getHandler() noexcept {
+  if (auto* rc = folly::RequestContext::try_get()) {
+    if (auto* d = rc->getContextData(DataTraits::kToken)) {
+      if (auto* p = static_cast<folly::ImmutableRequestData<Handler*>*>(d)) {
+        return p->value();
+      }
+    }
+  }
+  return nullptr;
+}
+}  // namespace
 
 class Service final : public wangle::Service<Message, Message> {
 public:
