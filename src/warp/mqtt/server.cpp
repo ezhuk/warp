@@ -4,7 +4,9 @@
 #include <folly/Function.h>
 #include <folly/executors/CPUThreadPoolExecutor.h>
 #include <folly/io/async/AsyncSignalHandler.h>
+#include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
+#include <folly/io/async/TimeoutManager.h>
 #include <folly/system/HardwareConcurrency.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
@@ -20,7 +22,7 @@
 namespace warp::mqtt {
 namespace {
 struct DataTraits {
-  static inline const folly::RequestToken kToken{"warp.mqtt.context"};
+  static inline const folly::RequestToken kToken{"warp.mqtt.handler"};
 };
 }  // namespace
 
@@ -35,8 +37,18 @@ public:
   void read(Context* ctx, folly::IOBufQueue& q) override {
     folly::RequestContextScopeGuard guard(context_);
     context_->setContextDataIfAbsent(
-        DataTraits::kToken, std::make_unique<folly::ImmutableRequestData<Context*>>(ctx)
+        DataTraits::kToken, std::make_unique<folly::ImmutableRequestData<Handler*>>(this)
     );
+    if (!timeout_) {
+      timeout_ = folly::AsyncTimeout::make(
+          static_cast<folly::TimeoutManager&>(*ctx->getTransport()->getEventBase()),
+          [ctx]() noexcept { ctx->fireClose(); }
+      );
+    }
+    if (timeout_->isScheduled()) {
+      timeout_->cancelTimeout();
+    }
+    timeout_->scheduleTimeout(std::chrono::seconds(90));
     for (;;) {
       auto msg = Codec::decode(q);
       if (!msg) {
@@ -53,6 +65,7 @@ public:
 
 private:
   std::shared_ptr<folly::RequestContext> context_;
+  std::unique_ptr<folly::AsyncTimeout> timeout_;
 };
 
 class Service final : public wangle::Service<Message, Message> {
@@ -96,16 +109,6 @@ public:
         },
         std::move(msg)
     );
-  }
-
-private:
-  std::optional<Handler::Context*> getContext() const {
-    if (auto* rc = folly::RequestContext::try_get()) {
-      if (auto* rd = rc->getThreadCachedContextData<DataTraits>()) {
-        return static_cast<folly::ImmutableRequestData<Handler::Context*>*>(rd)->value();
-      }
-    }
-    return std::nullopt;
   }
 };
 
