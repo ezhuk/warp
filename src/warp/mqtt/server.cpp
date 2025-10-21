@@ -58,8 +58,7 @@ public:
         DataTraits::kToken, std::make_unique<folly::ImmutableRequestData<Handler*>>(this)
     );
     if (!timeout_) {
-      timeout_ = folly::AsyncTimeout::schedule(
-          std::chrono::seconds(90),
+      timeout_ = folly::AsyncTimeout::make(
           static_cast<folly::TimeoutManager&>(*ctx->getTransport()->getEventBase()),
           [ctx]() noexcept { ctx->fireClose(); }
       );
