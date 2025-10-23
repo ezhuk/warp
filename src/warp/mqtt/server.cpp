@@ -26,13 +26,20 @@ struct DataTraits {
 };
 }  // namespace
 
+class HandlerOptions {
+public:
+  std::chrono::seconds timeout{90};
+};
+
 class Handler final
     : public wangle::Handler<folly::IOBufQueue&, Message, Message, std::unique_ptr<folly::IOBuf>> {
 public:
   using Context = typename wangle::Handler<
       folly::IOBufQueue&, Message, Message, std::unique_ptr<folly::IOBuf>>::Context;
 
-  Handler() : context_(std::make_shared<folly::RequestContext>()) {}
+  Handler()
+      : context_(std::make_shared<folly::RequestContext>()),
+        options_(std::make_unique<HandlerOptions>()) {}
 
   void read(Context* ctx, folly::IOBufQueue& q) override {
     folly::RequestContextScopeGuard guard(context_);
@@ -44,7 +51,7 @@ public:
       ctx->fireRead(std::move(*msg));
     }
     if (timeout_) {
-      timeout_->scheduleTimeout(std::chrono::seconds(90));
+      timeout_->scheduleTimeout(options_->timeout);
     }
   }
 
@@ -71,8 +78,28 @@ public:
     ctx->fireTransportInactive();
   }
 
+  void setTimeout(uint32_t timeout) {
+    if (timeout_) {
+      auto* evb = const_cast<folly::EventBase*>(
+          dynamic_cast<folly::EventBase const*>(timeout_->getTimeoutManager())
+      );
+      evb->runInEventBaseThread([this, timeout]() noexcept {
+        options_->timeout =
+            timeout > 0 ? std::chrono::seconds(timeout) : std::chrono::seconds::zero();
+        if (timeout_) {
+          if (options_->timeout > std::chrono::seconds::zero()) {
+            timeout_->scheduleTimeout(options_->timeout);
+          } else {
+            timeout_->cancelTimeout();
+          }
+        }
+      });
+    }
+  }
+
 private:
   std::shared_ptr<folly::RequestContext> context_;
+  std::unique_ptr<HandlerOptions> options_;
   std::unique_ptr<folly::AsyncTimeout> timeout_;
 };
 
@@ -96,6 +123,11 @@ public:
         [](auto&& m) -> folly::Future<Message> {
           using T = std::decay_t<decltype(m)>;
           if constexpr (std::is_same_v<T, Connect>) {
+            if (auto* handler = getHandler()) {
+              if (0 < m.head.timeout) {
+                handler->setTimeout(m.head.timeout + m.head.timeout / 2);
+              }
+            }
             return folly::makeFuture<Message>(
                 ConnAck::Builder{}.withSession(0).withReason(0).build()
             );
