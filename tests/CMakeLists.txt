@@ -1,6 +1,7 @@
 find_package(GTest CONFIG REQUIRED)
 
 add_executable(warp_tests
+  mqtt/client_test.cpp
   mqtt/codec_test.cpp
   mqtt/message_test.cpp
   mqtt/server_test.cpp
