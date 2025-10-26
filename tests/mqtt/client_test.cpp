@@ -1,7 +1,8 @@
 #include "warp/mqtt/client.h"
-#include "warp/mqtt/server.h"
 
 #include <gtest/gtest.h>
+
+#include "warp/mqtt/server.h"
 
 class ClientTest : public ::testing::Test {
 protected:
