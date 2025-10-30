@@ -57,6 +57,11 @@ target_link_libraries(app
     warp::warp
 )
 
+target_compile_definitions(app PRIVATE
+  APP_NAME="${PROJECT_NAME}"
+  APP_VERSION="${PROJECT_VERSION}"
+)
+
 set_target_properties(app PROPERTIES
   OUTPUT_NAME "warp"
 )
