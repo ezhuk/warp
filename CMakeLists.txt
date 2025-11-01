@@ -34,12 +34,21 @@ target_sources(warp
     src/warp/mqtt/server.cpp
 )
 
+target_compile_definitions(warp PUBLIC
+  WARP_VERSION="${PROJECT_VERSION}"
+)
+
 target_link_libraries(warp
   PUBLIC
     fmt::fmt
     Folly::folly
   PRIVATE
     wangle::wangle
+)
+
+set_target_properties(warp PROPERTIES
+  VERSION ${PROJECT_VERSION}
+  SOVERSION ${PROJECT_VERSION_MAJOR}
 )
 
 add_library(warp::warp ALIAS warp)
@@ -51,15 +60,15 @@ target_sources(app
     src/main.cpp
 )
 
+target_compile_definitions(app PRIVATE
+  APP_NAME="${PROJECT_NAME}"
+  APP_VERSION="${PROJECT_VERSION}"
+)
+
 target_link_libraries(app
   PRIVATE
     fmt::fmt
     warp::warp
-)
-
-target_compile_definitions(app PRIVATE
-  APP_NAME="${PROJECT_NAME}"
-  APP_VERSION="${PROJECT_VERSION}"
 )
 
 set_target_properties(app PROPERTIES
