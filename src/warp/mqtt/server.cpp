@@ -3,9 +3,9 @@
 #include <fmt/format.h>
 #include <folly/Function.h>
 #include <folly/executors/CPUThreadPoolExecutor.h>
-#include <folly/io/async/AsyncSignalHandler.h>
+// #include <folly/io/async/AsyncSignalHandler.h>
 #include <folly/io/async/AsyncTimeout.h>
-#include <folly/io/async/ScopedEventBaseThread.h>
+// #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/io/async/TimeoutManager.h>
 #include <folly/system/HardwareConcurrency.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
@@ -189,60 +189,23 @@ private:
 };
 
 namespace {
-class SignalHandler final : private folly::ScopedEventBaseThread,
-                            private folly::AsyncSignalHandler {
-public:
-  using SignalCallback = folly::Function<void(int)>;
-
-  SignalHandler(std::span<int const> signals, SignalCallback func)
-      : folly::ScopedEventBaseThread(),
-        folly::AsyncSignalHandler(this->folly::ScopedEventBaseThread::getEventBase()),
-        func_(std::move(func)) {
-    for (auto signal : signals) {
-      registerSignalHandler(signal);
-    }
-  }
-
-private:
-  void signalReceived(int signum) noexcept override {
-    if (func_) {
-      func_(signum);
-    }
-  }
-
-  SignalCallback func_;
-};
-
-int maskSignals(std::span<int const> signals, bool block = true) {
-  sigset_t set;
-  sigemptyset(&set);
-  for (auto signal : signals) {
-    sigaddset(&set, signal);
-  }
-  return pthread_sigmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, nullptr);
-}
-
 std::shared_ptr<wangle::ServerBootstrap<Pipeline>> server;
-std::unique_ptr<SignalHandler> signal;
 }  // namespace
 
 Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {
   if (0 == options_->threads) {
     options_->threads = std::max(4u, folly::hardware_concurrency());
   }
-  maskSignals(options_->signals);
 }
 
 Server::~Server() {}
 
 void Server::start() {
-  signal = std::make_unique<SignalHandler>(options_->signals, [this](int) { this->stop(); });
   server = std::make_shared<wangle::ServerBootstrap<Pipeline>>();
   server->childPipeline(std::make_shared<PipelineFactory>(options_->threads));
   server->bind(options_->port);
   server->waitForStop();
   server.reset();
-  signal.reset();
 }
 
 void Server::stop() { server->stop(); }

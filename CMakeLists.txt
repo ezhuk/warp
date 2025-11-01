@@ -13,6 +13,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
 find_package(fmt CONFIG REQUIRED)
 find_package(folly CONFIG REQUIRED)
+find_package(proxygen CONFIG REQUIRED)
 find_package(wangle CONFIG REQUIRED)
 
 add_library(warp)
@@ -28,6 +29,7 @@ target_include_directories(warp
 target_sources(warp
   PRIVATE
     src/warp/warp.cpp
+    src/warp/http/server.cpp
     src/warp/mqtt/client.cpp
     src/warp/mqtt/codec.cpp
     src/warp/mqtt/message.cpp
@@ -43,6 +45,7 @@ target_link_libraries(warp
     fmt::fmt
     Folly::folly
   PRIVATE
+    proxygen::proxygenhttpserver
     wangle::wangle
 )
 
