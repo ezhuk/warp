@@ -18,4 +18,3 @@ repos:
       files: ^(include|src|tests)/.*\.(h|cpp)$
       types_or: [c, c++, header]
       args: [-p, build/ninja-multi-vcpkg, --config-file=.clang-tidy]
-      require_serial: true
