@@ -17,11 +17,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v7
       - uses: lukka/get-cmake@latest
       - uses: lukka/run-vcpkg@v11
       - run: |
           cmake --preset ninja-multi-vcpkg
-          uvx pre-commit run --all-files --show-diff-on-failure
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: >-
+            --from-ref ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD~1' }}
+            --to-ref ${{ github.sha }}
+            --show-diff-on-failure
+      - run: |
           cmake --build --preset test
           ctest --preset test
