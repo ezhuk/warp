@@ -28,6 +28,7 @@ target_include_directories(warp
 
 target_sources(warp
   PRIVATE
+    src/warp/server.cpp
     src/warp/warp.cpp
     src/warp/http/server.cpp
     src/warp/mqtt/client.cpp
