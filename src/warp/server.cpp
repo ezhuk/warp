@@ -47,17 +47,14 @@ std::unique_ptr<warp::http::Server> http_server;
 std::unique_ptr<warp::mqtt::Server> mqtt_server;
 }  // namespace
 
-Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {
-}
+Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {}
 
 Server::~Server() {}
 
 void Server::start() {
   if (!options_->signals.empty()) {
     maskSignals(options_->signals);
-    signal = std::make_unique<SignalHandler>(options_->signals, [this](int) {
-      this->stop();
-    });
+    signal = std::make_unique<SignalHandler>(options_->signals, [this](int) { this->stop(); });
   }
   http_server = std::make_unique<warp::http::Server>(options_->http);
   mqtt_server = std::make_unique<warp::mqtt::Server>(options_->mqtt);
@@ -68,13 +65,13 @@ void Server::start() {
 }
 
 void Server::stop() {
-    if (http_server) {
-        http_server->stop();
-        http_server.reset();
-    }
-    if (mqtt_server) {
-        mqtt_server->stop();
-        mqtt_server.reset();
-    }
+  if (http_server) {
+    http_server->stop();
+    http_server.reset();
+  }
+  if (mqtt_server) {
+    mqtt_server->stop();
+    mqtt_server.reset();
+  }
 }
 }  // namespace warp

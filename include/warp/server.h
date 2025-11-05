@@ -22,4 +22,4 @@ public:
 private:
   std::shared_ptr<ServerOptions> options_;
 };
-}  // namepace warp
+}  // namespace warp
