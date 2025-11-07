@@ -3,11 +3,11 @@
 #include <fmt/format.h>
 #include <folly/Function.h>
 #include <folly/executors/CPUThreadPoolExecutor.h>
-// #include <folly/io/async/AsyncSignalHandler.h>
 #include <folly/io/async/AsyncTimeout.h>
-// #include <folly/io/async/ScopedEventBaseThread.h>
 #include <folly/io/async/TimeoutManager.h>
 #include <folly/system/HardwareConcurrency.h>
+#include <proxygen/httpserver/RequestHandler.h>
+#include <proxygen/httpserver/ResponseBuilder.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/EventBaseHandler.h>
@@ -189,7 +189,59 @@ private:
 };
 
 namespace {
+std::unique_ptr<Service> service;
+}  // namespace
+
+class WebSocketHandler final : public proxygen::RequestHandler {
+public:
+  void onRequest(std::unique_ptr<proxygen::HTTPMessage> request) noexcept override {
+    if (request->getHeaders().exists(proxygen::HTTP_HEADER_UPGRADE) &&
+        request->getHeaders().exists(proxygen::HTTP_HEADER_CONNECTION)) {
+      proxygen::ResponseBuilder response(downstream_);
+      response.status(101, "Switching Protocols")
+          .setEgressWebsocketHeaders()
+          .header("Sec-WebSocket-Version", "13")
+          .header("Sec-WebSocket-Protocol", "websocket")
+          .send();
+    } else {
+      proxygen::ResponseBuilder(downstream_).rejectUpgradeRequest();
+    }
+  }
+
+  void onBody(std::unique_ptr<folly::IOBuf> body) noexcept override {
+    folly::IOBufQueue queue{folly::IOBufQueue::cacheChainLength()};
+    queue.append(std::move(body));
+    auto msg = Codec::decode(queue);
+    if (msg) {
+      (*service)(std::move(*msg)).thenValue([this](Message out) {
+        auto buf = Codec::encode(out);
+        if (buf) {
+          proxygen::ResponseBuilder(downstream_).body(std::move(buf)).send();
+        } else {
+          proxygen::ResponseBuilder response(downstream_);
+          response.status(400, "Bad Request");
+          response.sendWithEOM();
+        }
+      });
+    } else {
+      proxygen::ResponseBuilder response(downstream_);
+      response.status(400, "Bad Request");
+      response.sendWithEOM();
+    }
+  }
+
+  void onEOM() noexcept override { proxygen::ResponseBuilder(downstream_).sendWithEOM(); }
+
+  void onUpgrade(proxygen::UpgradeProtocol) noexcept override {}
+
+  void requestComplete() noexcept override { delete this; }
+
+  void onError(proxygen::ProxygenError) noexcept override { delete this; }
+};
+
+namespace {
 std::shared_ptr<wangle::ServerBootstrap<Pipeline>> server;
+std::shared_ptr<WebSocketHandler> websocket;
 }  // namespace
 
 Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {
