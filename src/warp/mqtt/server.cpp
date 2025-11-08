@@ -167,12 +167,15 @@ public:
 
 using Pipeline = wangle::Pipeline<folly::IOBufQueue&, Message>;
 
+namespace {
+std::shared_ptr<Service> service;
+std::shared_ptr<wangle::ServerBootstrap<Pipeline>> server;
+}  // namespace
+
 class PipelineFactory final : public wangle::PipelineFactory<Pipeline> {
 public:
   explicit PipelineFactory(size_t threads)
-      : service_(
-            std::make_shared<folly::CPUThreadPoolExecutor>(threads), std::make_shared<Service>()
-        ) {}
+      : service_(std::make_shared<folly::CPUThreadPoolExecutor>(threads), service) {}
 
   Pipeline::Ptr newPipeline(std::shared_ptr<folly::AsyncTransport> sock) override {
     auto pipeline = Pipeline::create();
@@ -187,10 +190,6 @@ public:
 private:
   wangle::ExecutorFilter<Message, Message> service_;
 };
-
-namespace {
-std::unique_ptr<Service> service;
-}  // namespace
 
 class WebSocketHandler final : public proxygen::RequestHandler {
 public:
@@ -239,11 +238,6 @@ public:
   void onError(proxygen::ProxygenError) noexcept override { delete this; }
 };
 
-namespace {
-std::shared_ptr<wangle::ServerBootstrap<Pipeline>> server;
-std::shared_ptr<WebSocketHandler> websocket;
-}  // namespace
-
 Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {
   if (0 == options_->threads) {
     options_->threads = std::max(4u, folly::hardware_concurrency());
@@ -253,11 +247,13 @@ Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerO
 Server::~Server() {}
 
 void Server::start() {
+  service = std::make_shared<Service>();
   server = std::make_shared<wangle::ServerBootstrap<Pipeline>>();
   server->childPipeline(std::make_shared<PipelineFactory>(options_->threads));
   server->bind(options_->port);
   server->waitForStop();
   server.reset();
+  service.reset();
 }
 
 void Server::stop() { server->stop(); }
