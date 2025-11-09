@@ -7,6 +7,8 @@
 
 namespace warp::http {
 namespace {
+std::unordered_map<std::string, std::shared_ptr<proxygen::RequestHandlerFactory>> handlers;
+
 class HandlerFactory final : public proxygen::RequestHandlerFactory {
 public:
   void onServerStart(folly::EventBase*) noexcept override {}
@@ -14,8 +16,14 @@ public:
   void onServerStop() noexcept override {}
 
   proxygen::RequestHandler* onRequest(
-      proxygen::RequestHandler*, proxygen::HTTPMessage* msg
+      proxygen::RequestHandler* h, proxygen::HTTPMessage* msg
   ) noexcept override {
+    auto const& path = msg->getPath();
+    for (auto const& [p, handler] : handlers) {
+      if (folly::StringPiece(path).startsWith(p)) {
+        return handler->onRequest(h, msg);
+      }
+    }
     return new proxygen::DirectResponseHandler(404, "Not Found", "{\"error\":\"Not Found\"}");
   }
 };
@@ -46,4 +54,10 @@ void Server::start() {
 }
 
 void Server::stop() { server->stop(); }
+
+void Server::addHandler(
+    std::string const& path, std::shared_ptr<proxygen::RequestHandlerFactory> handler
+) {
+  handlers.emplace(std::move(path), std::move(handler));
+}
 }  // namespace warp::http
