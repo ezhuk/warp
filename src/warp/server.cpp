@@ -58,6 +58,7 @@ void Server::start() {
   }
   http_server = std::make_unique<warp::http::Server>(options_->http);
   mqtt_server = std::make_unique<warp::mqtt::Server>(options_->mqtt);
+  http_server->addHandler("/mqtt", mqtt_server->getHandlerFactory());
   std::thread http_thread([&]() { http_server->start(); });
   std::thread mqtt_thread([&]() { mqtt_server->start(); });
   http_thread.join();

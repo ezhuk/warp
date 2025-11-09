@@ -1,5 +1,7 @@
 #pragma once
 
+#include <proxygen/httpserver/RequestHandlerFactory.h>
+
 #include <csignal>
 #include <memory>
 #include <vector>
@@ -19,6 +21,10 @@ public:
 
   void start();
   void stop();
+
+  void addHandler(
+      std::string const& path, std::shared_ptr<proxygen::RequestHandlerFactory> handler
+  );
 
 private:
   std::shared_ptr<ServerOptions> options_;
