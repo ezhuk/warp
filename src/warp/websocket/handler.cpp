@@ -54,7 +54,7 @@ folly::Expected<std::vector<Frame>, Stream::Error> Stream::parse(
       payload = std::move(buf);
     }
 
-    out.push_back(Frame{opcode, fin, std::move(payload)});
+    out.push_back(Frame{static_cast<OpCode>(opcode), fin, std::move(payload)});
 
     size_t frame_size = off + plen;
     p += frame_size;
@@ -109,21 +109,17 @@ void Handler::onBody(std::unique_ptr<folly::IOBuf> body) noexcept {
   if (!frames.hasError()) {
     for (auto& f : *frames) {
       switch (f.opcode) {
-        case 0x2:
+        case OpCode::Continuation:
+        case OpCode::Binary:
           onDataFrame(std::move(f.data), f.fin);
           break;
-        case 0x0:
-          onDataFrame(std::move(f.data), f.fin);
-          break;
-        case 0x1:
+        case OpCode::Text:
           onTextFrame(std::move(f.data), f.fin);
           break;
-        case 0x9:
+        case OpCode::Ping:
           sendPong(std::move(f.data));
           break;
-        case 0xA:
-          break;
-        case 0x8: {
+        case OpCode::Close: {
           uint16_t code = 1000;
           folly::StringPiece reason;
           if (f.data && f.data->length() >= 2) {

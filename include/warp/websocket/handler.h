@@ -6,9 +6,19 @@
 #include <vector>
 
 namespace warp::websocket {
+enum class OpCode : uint8_t {
+  Continuation = 0x0,
+  Text = 0x1,
+  Binary = 0x2,
+  Close = 0x8,
+  Ping = 0x9,
+  Pong = 0xA,
+  Unknown = 0xFF
+};
+
 class Frame {
 public:
-  uint8_t opcode{0};
+  OpCode opcode{OpCode::Unknown};
   bool fin{true};
   std::unique_ptr<folly::IOBuf> data;
 };
