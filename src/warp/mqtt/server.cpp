@@ -6,8 +6,7 @@
 #include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/TimeoutManager.h>
 #include <folly/system/HardwareConcurrency.h>
-#include <proxygen/httpserver/RequestHandler.h>
-#include <proxygen/httpserver/ResponseBuilder.h>
+#include <proxygen/httpserver/RequestHandlerFactory.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/EventBaseHandler.h>
@@ -18,6 +17,7 @@
 #include <span>
 
 #include "warp/mqtt/codec.h"
+#include "warp/websocket/handler.h"
 
 namespace warp::mqtt {
 namespace {
@@ -191,167 +191,26 @@ private:
   wangle::ExecutorFilter<Message, Message> service_;
 };
 
-class WebSocketStream {
+class WebSocketHandler final : public warp::websocket::Handler {
 public:
-  enum class WebSocketStreamError {};
-
-  folly::Expected<std::unique_ptr<folly::IOBuf>, WebSocketStreamError> onData(
-      std::unique_ptr<folly::IOBuf> chain
-  ) {
-    auto fb = chain->clone()->coalesce();
-    const uint8_t* p = fb.data();
-    size_t n = fb.size();
-
-    auto out = folly::IOBuf::create(n);
-    uint8_t* outp = out->writableData();
-    size_t out_len = 0;
-
-    while (n >= 2) {
-      uint8_t b0 = p[0];
-      uint8_t b1 = p[1];
-
-      bool fin = (b0 & 0x80) != 0;
-      uint8_t opcode = (b0 & 0x0F);
-      bool masked = (b1 & 0x80) != 0;
-      uint64_t plen = (b1 & 0x7F);
-
-      if (!masked || !(opcode == 0x2 || opcode == 0x0)) {
-        return folly::makeUnexpected(WebSocketStreamError{});
-      }
-
-      size_t off = 2;
-      if (plen == 126) {
-        if (n < off + 2) {
-          break;
-        }
-        plen = ((uint64_t)p[off] << 8) | p[off + 1];
-        off += 2;
-      } else if (plen == 127) {
-        if (n < off + 8) {
-          break;
-        }
-        plen = 0;
-        for (int i = 0; i < 8; ++i) {
-          plen = (plen << 8) | p[off + i];
-        }
-        off += 8;
-      }
-
-      if (n < off + 4) {
+  void onDataFrame(std::unique_ptr<folly::IOBuf> data, bool fin) override {
+    queue_.append(std::move(data));
+    for (;;) {
+      auto msg = Codec::decode(queue_);
+      if (!msg) {
         break;
       }
-
-      const uint8_t* mask = p + off;
-      off += 4;
-      if (n < off + plen) {
-        break;
-      }
-
-      const uint8_t* pay = p + off;
-      if (out_len + plen > out->capacity()) {
-        auto more = folly::IOBuf::create(out_len + plen);
-        memcpy(more->writableData(), out->data(), out_len);
-        out = std::move(more);
-        outp = out->writableData();
-      }
-      for (uint64_t i = 0; i < plen; ++i) {
-        outp[out_len + i] = pay[i] ^ mask[i & 3];
-      }
-      out_len += plen;
-
-      size_t frame_size = off + plen;
-      p += frame_size;
-      n -= frame_size;
-
-      (void)fin;
-    }
-
-    out->append(out_len);
-    return out;
-  }
-
-  std::unique_ptr<folly::IOBuf> frame(
-      std::unique_ptr<folly::IOBuf> payload, uint8_t opcode = 0x2, bool fin = true
-  ) {
-    size_t len = payload ? payload->computeChainDataLength() : 0;
-
-    uint8_t hdr[14];
-    size_t off = 0;
-    hdr[off++] = (fin ? 0x80 : 0x00) | (opcode & 0x0F);
-    if (len < 126) {
-      hdr[off++] = static_cast<uint8_t>(len);
-    } else if (len <= 0xFFFF) {
-      hdr[off++] = 126;
-      hdr[off++] = static_cast<uint8_t>((len >> 8) & 0xFF);
-      hdr[off++] = static_cast<uint8_t>(len & 0xFF);
-    } else {
-      hdr[off++] = 127;
-      for (int i = 7; i >= 0; --i) {
-        hdr[off++] = static_cast<uint8_t>((len >> (8 * i)) & 0xFF);
-      }
-    }
-
-    auto head = folly::IOBuf::copyBuffer(hdr, off);
-    if (payload) {
-      head->appendChain(std::move(payload));
-    }
-    return head;
-  }
-};
-
-class WebSocketHandler final : public proxygen::RequestHandler {
-public:
-  void onRequest(std::unique_ptr<proxygen::HTTPMessage> request) noexcept override {
-    if (request->getHeaders().exists(proxygen::HTTP_HEADER_UPGRADE) &&
-        request->getHeaders().exists(proxygen::HTTP_HEADER_CONNECTION)) {
-      proxygen::ResponseBuilder response(downstream_);
-      response.status(101, "Switching Protocols")
-          .setEgressWebsocketHeaders()
-          .header("Sec-WebSocket-Version", "13")
-          .header("Sec-WebSocket-Protocol", "mqtt")
-          .send();
-    } else {
-      proxygen::ResponseBuilder(downstream_).rejectUpgradeRequest();
-    }
-  }
-
-  void onBody(std::unique_ptr<folly::IOBuf> body) noexcept override {
-    auto res = stream_->onData(std::move(body));
-    if (!res.hasError()) {
-      queue_.append(std::move(*res));
-      for (;;) {
-        auto msg = Codec::decode(queue_);
-        if (!msg) {
-          break;
+      (*service)(std::move(*msg)).thenValue([this](Message out) {
+        auto buf = Codec::encode(out);
+        if (buf) {
+          sendData(std::move(buf));
         }
-        (*service)(std::move(*msg)).thenValue([this](Message out) {
-          auto buf = Codec::encode(out);
-          if (buf) {
-            auto framed = stream_->frame(std::move(buf));
-            proxygen::ResponseBuilder(downstream_).body(std::move(framed)).send();
-          }
-        });
-      }
+      });
     }
   }
-
-  void onEOM() noexcept override {
-    if (!stream_) {
-      proxygen::ResponseBuilder(downstream_).sendWithEOM();
-    }
-  }
-
-  void onUpgrade(proxygen::UpgradeProtocol) noexcept override {
-    stream_ = std::make_unique<WebSocketStream>();
-  }
-
-  void requestComplete() noexcept override { delete this; }
-
-  void onError(proxygen::ProxygenError) noexcept override { delete this; }
 
 private:
   folly::IOBufQueue queue_{folly::IOBufQueue::cacheChainLength()};
-  std::unique_ptr<WebSocketStream> stream_;
 };
 
 class WebSocketHandlerFactory final : public proxygen::RequestHandlerFactory {
