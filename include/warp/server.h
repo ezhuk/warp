@@ -3,6 +3,9 @@
 #include <warp/http/server.h>
 #include <warp/mqtt/server.h>
 
+#include <csignal>
+#include <memory>
+
 namespace warp {
 class ServerOptions {
 public:
@@ -21,5 +24,7 @@ public:
 
 private:
   std::shared_ptr<ServerOptions> options_;
+  std::unique_ptr<warp::http::Server> http_;
+  std::unique_ptr<warp::mqtt::Server> mqtt_;
 };
 }  // namespace warp
