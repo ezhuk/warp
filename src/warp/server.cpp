@@ -6,56 +6,27 @@
 #include <span>
 #include <thread>
 
+#include "warp/utils/signal.h"
+
 namespace warp {
 namespace {
-class SignalHandler final : private folly::ScopedEventBaseThread,
-                            private folly::AsyncSignalHandler {
-public:
-  using SignalCallback = folly::Function<void(int)>;
-
-  SignalHandler(std::span<int const> signals, SignalCallback func)
-      : folly::ScopedEventBaseThread(),
-        folly::AsyncSignalHandler(this->folly::ScopedEventBaseThread::getEventBase()),
-        func_(std::move(func)) {
-    for (auto signal : signals) {
-      registerSignalHandler(signal);
-    }
-  }
-
-private:
-  void signalReceived(int signum) noexcept override {
-    if (func_) {
-      func_(signum);
-    }
-  }
-
-  SignalCallback func_;
-};
-
-int maskSignals(std::span<int const> signals, bool block = true) {
-  sigset_t set;
-  sigemptyset(&set);
-  for (auto signal : signals) {
-    sigaddset(&set, signal);
-  }
-  return pthread_sigmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, nullptr);
-}
-
-std::unique_ptr<SignalHandler> signal;
+std::unique_ptr<utils::SignalHandler> signal;
 }  // namespace
 
-Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {}
+Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {
+  if (!options_->signals.empty()) {
+    utils::maskSignals(options_->signals);
+    signal =
+        std::make_unique<utils::SignalHandler>(options_->signals, [this](int) { this->stop(); });
+  }
+}
 
-Server::~Server() {}
+Server::~Server() = default;
 
 void Server::start() {
-  if (!options_->signals.empty()) {
-    maskSignals(options_->signals);
-    signal = std::make_unique<SignalHandler>(options_->signals, [this](int) { this->stop(); });
-  }
-  http_ = std::make_unique<warp::http::Server>(options_->http);
-  mqtt_ = std::make_unique<warp::mqtt::Server>(options_->mqtt);
-  http_->addHandler("/mqtt", mqtt_->getHandlerFactory());
+  http_ = std::make_unique<http::Server>(options_->http);
+  mqtt_ = std::make_unique<mqtt::Server>(options_->mqtt);
+  http_->addHandler(options_->mqtt.path, mqtt_->getHandlerFactory());
   std::thread http_thread([&]() { http_->start(); });
   std::thread mqtt_thread([&]() { mqtt_->start(); });
   http_thread.join();

@@ -35,6 +35,7 @@ target_sources(warp
     src/warp/mqtt/codec.cpp
     src/warp/mqtt/message.cpp
     src/warp/mqtt/server.cpp
+    src/warp/utils/signal.cpp
     src/warp/websocket/handler.cpp
 )
 

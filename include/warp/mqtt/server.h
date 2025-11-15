@@ -9,6 +9,7 @@ class ServerOptions {
 public:
   uint16_t port{1883};
   size_t threads{0};
+  std::string path{"/mqtt"};
 };
 
 class Server final {
