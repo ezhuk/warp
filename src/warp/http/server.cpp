@@ -2,8 +2,9 @@
 
 #include <folly/system/HardwareConcurrency.h>
 #include <proxygen/httpserver/HTTPServer.h>
-#include <proxygen/httpserver/RequestHandlerFactory.h>
 #include <proxygen/httpserver/filters/DirectResponseHandler.h>
+
+#include <unordered_map>
 
 namespace warp::http {
 namespace {

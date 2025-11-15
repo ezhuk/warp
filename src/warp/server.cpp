@@ -3,7 +3,6 @@
 #include <folly/io/async/AsyncSignalHandler.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 
-#include <memory>
 #include <span>
 #include <thread>
 
@@ -43,8 +42,6 @@ int maskSignals(std::span<int const> signals, bool block = true) {
 }
 
 std::unique_ptr<SignalHandler> signal;
-std::unique_ptr<warp::http::Server> http_server;
-std::unique_ptr<warp::mqtt::Server> mqtt_server;
 }  // namespace
 
 Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {}
@@ -56,23 +53,23 @@ void Server::start() {
     maskSignals(options_->signals);
     signal = std::make_unique<SignalHandler>(options_->signals, [this](int) { this->stop(); });
   }
-  http_server = std::make_unique<warp::http::Server>(options_->http);
-  mqtt_server = std::make_unique<warp::mqtt::Server>(options_->mqtt);
-  http_server->addHandler("/mqtt", mqtt_server->getHandlerFactory());
-  std::thread http_thread([&]() { http_server->start(); });
-  std::thread mqtt_thread([&]() { mqtt_server->start(); });
+  http_ = std::make_unique<warp::http::Server>(options_->http);
+  mqtt_ = std::make_unique<warp::mqtt::Server>(options_->mqtt);
+  http_->addHandler("/mqtt", mqtt_->getHandlerFactory());
+  std::thread http_thread([&]() { http_->start(); });
+  std::thread mqtt_thread([&]() { mqtt_->start(); });
   http_thread.join();
   mqtt_thread.join();
 }
 
 void Server::stop() {
-  if (http_server) {
-    http_server->stop();
-    http_server.reset();
+  if (http_) {
+    http_->stop();
+    http_.reset();
   }
-  if (mqtt_server) {
-    mqtt_server->stop();
-    mqtt_server.reset();
+  if (mqtt_) {
+    mqtt_->stop();
+    mqtt_.reset();
   }
 }
 }  // namespace warp

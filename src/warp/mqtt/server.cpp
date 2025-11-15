@@ -1,20 +1,15 @@
 #include "warp/mqtt/server.h"
 
-#include <fmt/format.h>
-#include <folly/Function.h>
 #include <folly/executors/CPUThreadPoolExecutor.h>
 #include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/TimeoutManager.h>
 #include <folly/system/HardwareConcurrency.h>
-#include <proxygen/httpserver/RequestHandlerFactory.h>
 #include <wangle/bootstrap/ServerBootstrap.h>
 #include <wangle/channel/AsyncSocketHandler.h>
 #include <wangle/channel/EventBaseHandler.h>
 #include <wangle/channel/Pipeline.h>
 #include <wangle/service/ExecutorFilter.h>
 #include <wangle/service/ServerDispatcher.h>
-
-#include <span>
 
 #include "warp/mqtt/codec.h"
 #include "warp/websocket/handler.h"
