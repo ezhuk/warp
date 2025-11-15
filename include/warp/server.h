@@ -24,7 +24,7 @@ public:
 
 private:
   std::shared_ptr<ServerOptions> options_;
-  std::unique_ptr<warp::http::Server> http_;
-  std::unique_ptr<warp::mqtt::Server> mqtt_;
+  std::unique_ptr<http::Server> http_;
+  std::unique_ptr<mqtt::Server> mqtt_;
 };
 }  // namespace warp
