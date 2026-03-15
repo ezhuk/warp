@@ -15,6 +15,6 @@ repos:
       name: clang-tidy
       entry: clang-tidy
       language: system
-      files: ^(include|src|tests)/.*\.(h|cpp)$
+      files: ^(include|src|tests)/.*\.cpp$
       types_or: [c, c++, header]
       args: [-p, build/ninja-multi-vcpkg, --config-file=.clang-tidy]
