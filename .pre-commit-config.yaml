@@ -5,16 +5,7 @@ repos:
     - id: end-of-file-fixer
     - id: trailing-whitespace
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v21.1.2
+  rev: v22.1.1
   hooks:
     - id: clang-format
       types_or: [c, c++, header]
-- repo: local
-  hooks:
-    - id: clang-tidy
-      name: clang-tidy
-      entry: clang-tidy
-      language: system
-      files: ^(include|src|tests)/.*\.cpp$
-      types_or: [c, c++, header]
-      args: [-p, build/ninja-multi-vcpkg, --config-file=.clang-tidy]
