@@ -35,7 +35,7 @@ private:
 
 Server::Server(ServerOptions const& options) : options_(std::make_shared<ServerOptions>(options)) {
   if (0 == options_->threads) {
-    options_->threads = std::max(4u, folly::hardware_concurrency());
+    options_->threads = std::max(4u, folly::available_concurrency());
   }
 }
 
