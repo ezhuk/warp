@@ -27,12 +27,11 @@ jobs:
       - uses: lukka/run-vcpkg@v11
       - run: |
           cmake --preset ninja-multi-vcpkg
+          cmake --build --preset test
+          ctest --preset test
       - uses: pre-commit/action@v3.0.1
         with:
           extra_args: >-
             --from-ref ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD~1' }}
             --to-ref ${{ github.sha }}
             --show-diff-on-failure
-      - run: |
-          cmake --build --preset test
-          ctest --preset test
