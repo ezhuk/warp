@@ -1,21 +1,27 @@
 {
-  "build": {
-    "dockerfile": "Dockerfile"
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "mounts": [
+    "source=bazel-cache,target=/home/vscode/.cache/bazel,type=volume",
+    "source=bazelisk-cache,target=/home/vscode/.cache/bazelisk,type=volume"
+  ],
+  "features": {
+    "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+      "upgradePackages": true,
+      "packages": "build-essential,openjdk-21-jdk"
+    },
+    "ghcr.io/devcontainers-community/features/bazel:1": {
+      "bazelisk_version": "v1.28.1",
+      "buildifier_version": "v8.5.1"
+    },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/git:1": {}
   },
   "customizations": {
     "vscode": {
       "extensions": [
-        "ms-vscode.cmake-tools",
+        "BazelBuild.vscode-bazel",
         "ms-vscode.cpptools"
       ]
     }
-  },
-  "containerEnv": {
-    "VCPKG_ROOT": "/usr/local/vcpkg",
-    "CMAKE_TOOLCHAIN_FILE": "/usr/local/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  },
-  "features": {
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
-  },
-  "postCreateCommand": "bash .devcontainer/post-create.sh"
+  }
 }
