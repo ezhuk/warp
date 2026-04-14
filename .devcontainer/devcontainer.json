@@ -7,19 +7,22 @@
   "features": {
     "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
       "upgradePackages": true,
-      "packages": "build-essential,openjdk-21-jdk"
+      "packages": "build-essential,ninja-build,openjdk-21-jdk"
     },
     "ghcr.io/devcontainers-community/features/bazel:1": {
       "bazelisk_version": "v1.28.1",
       "buildifier_version": "v8.5.1"
     },
+    "ghcr.io/devcontainers-community/features/cmake": {},
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-    "ghcr.io/devcontainers/features/git:1": {}
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers-community/features/vcpkg:1": {}
   },
   "customizations": {
     "vscode": {
       "extensions": [
         "BazelBuild.vscode-bazel",
+        "ms-vscode.cmake-tools",
         "ms-vscode.cpptools"
       ]
     }
