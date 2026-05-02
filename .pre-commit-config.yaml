@@ -3,6 +3,7 @@ repos:
   rev: v6.0.0
   hooks:
     - id: end-of-file-fixer
+      exclude: ^vcpkg\.json$
     - id: trailing-whitespace
 - repo: https://github.com/pre-commit/mirrors-clang-format
   rev: v22.1.1
