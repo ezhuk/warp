@@ -1,0 +1,12 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+package(default_package_metadata = ["//:license"])
+
+cc_binary(
+    name = "warp_bench",
+    srcs = ["mqtt/codec.cpp"],
+    deps = [
+        "//src/warp/mqtt:codec",
+        "@google_benchmark//:benchmark_main",
+    ],
+)

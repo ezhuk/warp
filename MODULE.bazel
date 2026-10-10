@@ -1,0 +1,15 @@
+module(
+    name = "warp",
+    version = "0.2.0",
+)
+
+bazel_dep(name = "fmt", version = "12.2.0")
+bazel_dep(name = "folly", version = "2026.08.24.00")
+bazel_dep(name = "proxygen", version = "2026.08.24.00")
+bazel_dep(name = "rules_cc", version = "0.2.25")
+bazel_dep(name = "rules_license", version = "1.0.0")
+bazel_dep(name = "wangle", version = "2026.08.24.00")
+
+bazel_dep(name = "gflags", version = "2.3.1", dev_dependency = True)
+bazel_dep(name = "googletest", version = "1.18.0.bcr.1", dev_dependency = True)
+bazel_dep(name = "google_benchmark", version = "1.9.5", dev_dependency = True)

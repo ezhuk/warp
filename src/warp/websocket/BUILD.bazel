@@ -1,0 +1,16 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "websocket",
+    srcs = ["handler.cpp"],
+    hdrs = ["//:include/warp/websocket/handler.h"],
+    includes = ["../../../include"],
+    deps = [
+        "@folly//folly:expected",
+        "@folly//folly/io:iobuf",
+        "@proxygen//proxygen/httpserver",
+        "@proxygen//proxygen/httpserver:httpserver_headers",
+    ],
+)

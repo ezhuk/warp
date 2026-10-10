@@ -1,0 +1,10 @@
+*
+!.bazelrc
+!.bazelversion
+!BUILD.bazel
+!MODULE.bazel
+!MODULE.bazel.lock
+!include/
+!include/**
+!src/
+!src/**

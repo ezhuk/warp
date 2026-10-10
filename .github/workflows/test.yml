@@ -9,29 +9,15 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    permissions:
-      contents: read
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y autoconf autoconf-archive automake libtool pkg-config
-      - uses: astral-sh/setup-uv@v7
-      - uses: lukka/get-cmake@latest
-      - uses: lukka/run-vcpkg@v11
-      - run: |
-          cmake --preset ninja-multi-vcpkg
-          cmake --build --preset test
-          ctest --preset test
       - uses: pre-commit/action@v3.0.1
-        with:
-          extra_args: >-
-            --from-ref ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD~1' }}
-            --to-ref ${{ github.sha }}
-            --show-diff-on-failure
+      - run: |
+          bazel build //...
+          bazel test //tests/... --test_output=errors

@@ -1,0 +1,16 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "http",
+    srcs = ["server.cpp"],
+    hdrs = ["//:include/warp/http/server.h"],
+    includes = ["../../../include"],
+    deps = [
+        "@folly//folly/system:hardware_concurrency",
+        "@proxygen//proxygen/httpserver",
+        "@proxygen//proxygen/httpserver:httpserver_headers",
+        "@proxygen//proxygen/httpserver/filters:direct_response_handler",
+    ],
+)
