@@ -1,0 +1,59 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "client",
+    srcs = ["client.cpp"],
+    hdrs = ["//:include/warp/mqtt/client.h"],
+    includes = ["../../../include"],
+    deps = [
+        ":codec",
+        "@folly//folly/executors:io_thread_pool_executor",
+        "@folly//folly/futures:core",
+        "@wangle//wangle/bootstrap:client_bootstrap",
+        "@wangle//wangle/channel:async_socket_handler",
+        "@wangle//wangle/channel:event_base_handler",
+        "@wangle//wangle/channel:pipeline",
+        "@wangle//wangle/service:client_dispatcher",
+    ],
+)
+
+cc_library(
+    name = "codec",
+    srcs = [
+        "codec.cpp",
+        "message.cpp",
+    ],
+    hdrs = [
+        "//:include/warp/mqtt/codec.h",
+        "//:include/warp/mqtt/message.h",
+    ],
+    includes = ["../../../include"],
+    deps = [
+        "@folly//folly:varint",
+        "@folly//folly/io:cursor",
+        "@folly//folly/io:iobuf",
+    ],
+)
+
+cc_library(
+    name = "server",
+    srcs = ["server.cpp"],
+    hdrs = ["//:include/warp/mqtt/server.h"],
+    includes = ["../../../include"],
+    deps = [
+        ":codec",
+        "//src/warp/websocket",
+        "@folly//folly/executors:cpu_thread_pool_executor",
+        "@folly//folly/io/async:async_timeout",
+        "@folly//folly/system:hardware_concurrency",
+        "@proxygen//proxygen/httpserver:httpserver_headers",
+        "@wangle//wangle/bootstrap:server_bootstrap",
+        "@wangle//wangle/channel:async_socket_handler",
+        "@wangle//wangle/channel:event_base_handler",
+        "@wangle//wangle/channel:pipeline",
+        "@wangle//wangle/service:executor_filter",
+        "@wangle//wangle/service:server_dispatcher",
+    ],
+)
