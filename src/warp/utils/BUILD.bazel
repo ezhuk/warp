@@ -1,0 +1,13 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "signal",
+    srcs = ["signal.cpp"],
+    hdrs = ["//:include/warp/utils/signal.h"],
+    includes = ["../../../include"],
+    deps = [
+        "@folly//folly/io/async:async_signal_handler",
+    ],
+)
