@@ -4,11 +4,11 @@ multi-ecosystem-groups:
     schedule:
       interval: "monthly"
 updates:
-  - package-ecosystem: "vcpkg"
+  - package-ecosystem: "github-actions"
     directory: "/"
     patterns: ["*"]
     multi-ecosystem-group: "all"
-  - package-ecosystem: "github-actions"
+  - package-ecosystem: "bazel"
     directory: "/"
     patterns: ["*"]
     multi-ecosystem-group: "all"
