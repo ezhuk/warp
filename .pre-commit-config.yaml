@@ -3,10 +3,14 @@ repos:
   rev: v6.0.0
   hooks:
     - id: end-of-file-fixer
-      exclude: ^vcpkg\.json$
     - id: trailing-whitespace
+- repo: https://github.com/keith/pre-commit-buildifier
+  rev: 10.0.1
+  hooks:
+    - id: buildifier
+    - id: buildifier-lint
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v22.1.1
+  rev: v23.1.0
   hooks:
     - id: clang-format
-      types_or: [c, c++, header]
+      types_or: [c, c++]
