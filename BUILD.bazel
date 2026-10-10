@@ -1,0 +1,48 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("@rules_license//rules:license.bzl", "license")
+
+package(
+    default_package_metadata = ["//:license"],
+    default_visibility = ["//visibility:public"],
+)
+
+exports_files(["LICENSE"])
+
+license(
+    name = "license",
+    license_kinds = ["@rules_license//licenses/spdx:MIT"],
+    license_text = "LICENSE",
+)
+
+exports_files(
+    glob(["include/warp/**/*.h"]),
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "warp",
+    srcs = [
+        "src/warp/server.cpp",
+        "src/warp/warp.cpp",
+    ],
+    hdrs = [
+        "include/warp/server.h",
+        "include/warp/warp.h",
+    ],
+    includes = ["include"],
+    deps = [
+        "//src/warp/http",
+        "//src/warp/mqtt:client",
+        "//src/warp/mqtt:server",
+        "//src/warp/utils:signal",
+    ],
+)
+
+cc_binary(
+    name = "warp_bin",
+    srcs = ["src/main.cpp"],
+    deps = [
+        ":warp",
+        "@fmt",
+    ],
+)

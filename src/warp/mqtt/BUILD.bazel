@@ -32,7 +32,6 @@ cc_library(
     includes = ["../../../include"],
     deps = [
         "@folly//folly:varint",
-        "@folly//folly/io:cursor",
         "@folly//folly/io:iobuf",
     ],
 )
@@ -46,7 +45,7 @@ cc_library(
         ":codec",
         "//src/warp/websocket",
         "@folly//folly/executors:cpu_thread_pool_executor",
-        "@folly//folly/io/async:async_timeout",
+        "@folly//folly/io/async:async_base",
         "@folly//folly/system:hardware_concurrency",
         "@proxygen//proxygen/httpserver:httpserver_headers",
         "@wangle//wangle/bootstrap:server_bootstrap",

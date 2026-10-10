@@ -9,5 +9,6 @@ cc_library(
     includes = ["../../../include"],
     deps = [
         "@folly//folly/io/async:async_signal_handler",
+        "@folly//folly/io/async:scoped_event_base_thread",
     ],
 )
