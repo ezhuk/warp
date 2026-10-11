@@ -5,8 +5,8 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "client",
     srcs = ["client.cpp"],
-    hdrs = ["//:include/warp/mqtt/client.h"],
-    includes = ["../../../include"],
+    hdrs = ["client.h"],
+    include_prefix = "warp/mqtt",
     deps = [
         ":codec",
         "@folly//folly/executors:io_thread_pool_executor",
@@ -26,10 +26,10 @@ cc_library(
         "message.cpp",
     ],
     hdrs = [
-        "//:include/warp/mqtt/codec.h",
-        "//:include/warp/mqtt/message.h",
+        "codec.h",
+        "message.h",
     ],
-    includes = ["../../../include"],
+    include_prefix = "warp/mqtt",
     deps = [
         "@folly//folly:varint",
         "@folly//folly/io:iobuf",
@@ -39,11 +39,11 @@ cc_library(
 cc_library(
     name = "server",
     srcs = ["server.cpp"],
-    hdrs = ["//:include/warp/mqtt/server.h"],
-    includes = ["../../../include"],
+    hdrs = ["server.h"],
+    include_prefix = "warp/mqtt",
     deps = [
         ":codec",
-        "//src/warp/websocket",
+        "//warp/websocket",
         "@folly//folly/executors:cpu_thread_pool_executor",
         "@folly//folly/io/async:async_base",
         "@folly//folly/system:hardware_concurrency",
