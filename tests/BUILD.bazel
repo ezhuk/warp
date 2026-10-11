@@ -12,7 +12,10 @@ cc_test(
         "warp_test.cpp",
     ],
     deps = [
-        "//:warp",
+        "//warp",
+        "//warp/mqtt:client",
+        "//warp/mqtt:codec",
+        "//warp/mqtt:server",
         "@googletest//:gtest_main",
     ],
 )

@@ -5,8 +5,8 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "http",
     srcs = ["server.cpp"],
-    hdrs = ["//:include/warp/http/server.h"],
-    includes = ["../../../include"],
+    hdrs = ["server.h"],
+    include_prefix = "warp/http",
     deps = [
         "@folly//folly/system:hardware_concurrency",
         "@proxygen//proxygen/httpserver",

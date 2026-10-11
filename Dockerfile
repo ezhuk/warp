@@ -15,7 +15,7 @@ WORKDIR /src
 
 COPY . .
 
-RUN bazel build -c opt //:warp_bin && \
+RUN bazel build -c opt //warp:warp_bin && \
     install -Dm755 bazel-bin/warp_bin /usr/local/bin/warp
 
 RUN mkdir -p /opt/warp/lib && \

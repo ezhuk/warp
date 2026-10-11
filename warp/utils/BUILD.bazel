@@ -5,8 +5,8 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "signal",
     srcs = ["signal.cpp"],
-    hdrs = ["//:include/warp/utils/signal.h"],
-    includes = ["../../../include"],
+    hdrs = ["signal.h"],
+    include_prefix = "warp/utils",
     deps = [
         "@folly//folly/io/async:async_signal_handler",
         "@folly//folly/io/async:scoped_event_base_thread",
