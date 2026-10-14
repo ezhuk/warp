@@ -21,6 +21,13 @@ struct DataTraits {
 };
 }  // namespace
 
+using Response = std::optional<Message>;
+using Context = wangle::HandlerAdapter<Message, Message>::Context;
+struct Request {
+  Message message;
+  Context* context;
+};
+
 class HandlerOptions {
 public:
   std::chrono::seconds timeout{90};
@@ -96,6 +103,24 @@ private:
   std::shared_ptr<folly::RequestContext> context_;
   std::unique_ptr<HandlerOptions> options_;
   std::unique_ptr<folly::AsyncTimeout> timeout_;
+};
+
+class Dispatcher final : public wangle::HandlerAdapter<Message, Message> {
+public:
+  using Context = wangle::HandlerAdapter<Message, Message>::Context;
+
+  explicit Dispatcher(wangle::Service<Request, Response>* service) : service_(service) {}
+
+  void read(Context* ctx, Message msg) override {
+    (*service_)(Request{std::move(msg), ctx}).thenValue([ctx](Response response) {
+      if (response) {
+        ctx->fireWrite(std::move(*response));
+      }
+    });
+  }
+
+private:
+  wangle::Service<Request, Response>* service_;
 };
 
 namespace {
