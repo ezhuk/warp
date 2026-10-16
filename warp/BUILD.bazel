@@ -15,7 +15,6 @@ cc_library(
     name = "warp",
     srcs = [
         "server.cpp",
-        "warp.cpp",
     ],
     hdrs = [
         "server.h",
