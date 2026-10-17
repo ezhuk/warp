@@ -1,14 +1,13 @@
 // main.cpp
 
 #include <folly/init/Init.h>
-#include <folly/io/async/AsyncSignalHandler.h>
-#include <folly/io/async/EventBase.h>
 #include <folly/logging/Init.h>
 #include <folly/logging/xlog.h>
 #include <folly/portability/GFlags.h>
 
-#include <csignal>
 #include <string>
+
+#include "scoped_event_base.h"
 
 FOLLY_GFLAGS_DEFINE_int32(mqtt_port, 1883, "MQTT port to listen on");
 FOLLY_GFLAGS_DEFINE_int32(http_port, 8080, "HTTP port to listen on");
@@ -23,13 +22,8 @@ int main(int argc, char* argv[]) {
   auto _ = folly::Init(&argc, &argv);
   XLOGF(INFO, "STARTED v{} {}", WARP_VERSION, FLAGS_mqtt_port);
 
-  folly::EventBase base;
-
-  folly::CallbackAsyncSignalHandler handler{&base, [&](int) { base.terminateLoopSoon(); }};
-  handler.registerSignalHandler(SIGINT);
-  handler.registerSignalHandler(SIGTERM);
-
-  base.loopForever();
+  warp::ScopedEventBase base([](int signum) { XLOGF(INFO, "Received signal {}", signum); });
+  base.run();
 
   XLOG(INFO, "STOPPED");
   return 0;
