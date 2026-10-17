@@ -1,7 +1,6 @@
 // scoped_event_base_test.cpp
 
 #include <gtest/gtest.h>
-
 #include <warp/scoped_event_base.h>
 
 #include <csignal>
