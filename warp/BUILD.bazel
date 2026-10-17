@@ -6,13 +6,22 @@ cc_binary(
     name = "app",
     srcs = ["main.cpp"],
     deps = [
+        ":scoped_event_base",
         ":warp",
         "@folly//folly/init",
-        "@folly//folly/io/async:async_base",
-        "@folly//folly/io/async:async_signal_handler",
         "@folly//folly/logging",
         "@folly//folly/logging:init",
         "@folly//folly/portability:gflags",
+    ],
+)
+
+cc_library(
+    name = "scoped_event_base",
+    hdrs = ["scoped_event_base.h"],
+    include_prefix = "warp",
+    deps = [
+        "@folly//folly/io/async:async_base",
+        "@folly//folly/io/async:async_signal_handler",
     ],
 )
 

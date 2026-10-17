@@ -3,12 +3,10 @@ load("@rules_cc//cc:defs.bzl", "cc_test")
 package(default_package_metadata = ["//:license"])
 
 cc_test(
-    name = "warp_test",
-    srcs = [
-        "warp_test.cpp",
-    ],
+    name = "scoped_event_base_test",
+    srcs = ["scoped_event_base_test.cpp"],
     deps = [
-        "//warp",
+        "//warp:scoped_event_base",
         "@googletest//:gtest_main",
     ],
 )
