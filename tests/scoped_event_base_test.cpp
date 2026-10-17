@@ -9,9 +9,7 @@
 TEST(ScopedEventBaseTest, HandlesSIGINT) {
   int received = 0;
 
-  warp::ScopedEventBase base([&](int signum) {
-    received = signum;
-  });
+  warp::ScopedEventBase base([&](int signum) { received = signum; });
 
   ASSERT_EQ(std::raise(SIGINT), 0);
 
