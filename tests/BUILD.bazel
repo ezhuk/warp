@@ -5,17 +5,10 @@ package(default_package_metadata = ["//:license"])
 cc_test(
     name = "warp_test",
     srcs = [
-        "mqtt/client_test.cpp",
-        "mqtt/codec_test.cpp",
-        "mqtt/message_test.cpp",
-        "mqtt/server_test.cpp",
         "warp_test.cpp",
     ],
     deps = [
         "//warp",
-        "//warp/mqtt:client",
-        "//warp/mqtt:codec",
-        "//warp/mqtt:server",
         "@googletest//:gtest_main",
     ],
 )

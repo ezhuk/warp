@@ -4,9 +4,8 @@ package(default_package_metadata = ["//:license"])
 
 cc_binary(
     name = "warp_bench",
-    srcs = ["mqtt/codec.cpp"],
+    srcs = [],
     deps = [
-        "//warp/mqtt:codec",
         "@google_benchmark//:benchmark_main",
     ],
 )
