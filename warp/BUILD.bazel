@@ -3,28 +3,24 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_binary(
-    name = "warp_bin",
+    name = "app",
     srcs = ["main.cpp"],
     deps = [
         ":warp",
-        "@fmt",
+        "@folly//folly/init",
+        "@folly//folly/io/async:async_base",
+        "@folly//folly/io/async:async_signal_handler",
+        "@folly//folly/logging",
+        "@folly//folly/logging:init",
+        "@folly//folly/portability:gflags",
     ],
 )
 
 cc_library(
     name = "warp",
-    srcs = [
-        "server.cpp",
-    ],
-    hdrs = [
-        "server.h",
-        "warp.h",
-    ],
+    srcs = [],
+    hdrs = [],
+    defines = ['WARP_VERSION=\\"{}\\"'.format(module_version())],
     include_prefix = "warp",
-    deps = [
-        "//warp/http",
-        "//warp/mqtt:client",
-        "//warp/mqtt:server",
-        "//warp/utils:signal",
-    ],
+    deps = [],
 )
