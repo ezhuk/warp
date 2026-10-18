@@ -6,7 +6,7 @@ cc_binary(
     name = "app",
     srcs = ["main.cpp"],
     deps = [
-        ":scoped_event_base",
+        ":server",
         ":warp",
         "@folly//folly/init",
         "@folly//folly/logging",
@@ -22,6 +22,16 @@ cc_library(
     deps = [
         "@folly//folly/io/async:async_base",
         "@folly//folly/io/async:async_signal_handler",
+    ],
+)
+
+cc_library(
+    name = "server",
+    srcs = ["server.cpp"],
+    hdrs = ["server.h"],
+    include_prefix = "warp",
+    deps = [
+        ":scoped_event_base",
     ],
 )
 

@@ -7,7 +7,7 @@
 
 #include <string>
 
-#include "scoped_event_base.h"
+#include "server.h"
 
 FOLLY_GFLAGS_DEFINE_int32(mqtt_port, 1883, "MQTT port to listen on");
 FOLLY_GFLAGS_DEFINE_int32(http_port, 8080, "HTTP port to listen on");
@@ -22,8 +22,8 @@ int main(int argc, char* argv[]) {
   auto _ = folly::Init(&argc, &argv);
   XLOGF(INFO, "STARTED v{} {}", WARP_VERSION, FLAGS_mqtt_port);
 
-  warp::ScopedEventBase base([](int signum) { XLOGF(INFO, "Received signal {}", signum); });
-  base.run();
+  warp::Server server;
+  server.run();
 
   XLOG(INFO, "STOPPED");
   return 0;
