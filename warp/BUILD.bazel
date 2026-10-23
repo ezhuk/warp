@@ -32,6 +32,17 @@ cc_library(
     include_prefix = "warp",
     deps = [
         ":scoped_event_base",
+        "@folly//folly:exception_wrapper",
+        "@folly//folly:unit",
+        "@folly//folly/futures:core",
+        "@folly//folly/io:iobuf",
+        "@wangle//wangle/bootstrap:server_bootstrap",
+        "@wangle//wangle/channel:async_socket_handler",
+        "@wangle//wangle/channel:event_base_handler",
+        "@wangle//wangle/channel:handler",
+        "@wangle//wangle/channel:pipeline",
+        "@wangle//wangle/service",
+        "@wangle//wangle/service:server_dispatcher",
     ],
 )
 

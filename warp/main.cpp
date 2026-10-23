@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
   folly::gflags::SetVersionString(WARP_VERSION);
 
   auto _ = folly::Init(&argc, &argv);
-  XLOGF(INFO, "STARTED v{} {}", WARP_VERSION, FLAGS_mqtt_port);
+  XLOGF(INFO, "STARTED v{}", WARP_VERSION);
 
   warp::Server server;
   server.run();
