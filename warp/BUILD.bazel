@@ -32,6 +32,7 @@ cc_library(
     include_prefix = "warp",
     deps = [
         ":scoped_event_base",
+        "@folly//folly:exception_wrapper",
         "@folly//folly:unit",
         "@folly//folly/futures:core",
         "@folly//folly/io:iobuf",
