@@ -5,7 +5,7 @@ module(
 
 bazel_dep(name = "folly", version = "2026.08.24.00")
 bazel_dep(name = "proxygen", version = "2026.08.24.00")
-bazel_dep(name = "rules_cc", version = "0.2.26")
+bazel_dep(name = "rules_cc", version = "0.2.27")
 bazel_dep(name = "rules_license", version = "1.0.0")
 bazel_dep(name = "wangle", version = "2026.08.24.00")
 
