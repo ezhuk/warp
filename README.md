@@ -12,7 +12,7 @@ A lightweight, high-performance MQTT server.
 Build and run as follows:
 
 ```bash
-bazel run -c opt //:warp_bin
+bazel run -c opt //warp:app
 ```
 
 ## Acknowledgments
