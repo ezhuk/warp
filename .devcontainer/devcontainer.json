@@ -6,6 +6,7 @@
   ],
   "features": {
     "ghcr.io/ezhuk/devcontainer-features/bazel:1": {},
+    "ghcr.io/ezhuk/devcontainer-features/gcc:1": {},
     "ghcr.io/ezhuk/devcontainer-features/uv:1": {}
   },
   "customizations": {
