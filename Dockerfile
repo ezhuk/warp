@@ -1,6 +1,6 @@
-FROM ubuntu:24.04 AS build
+FROM ubuntu:26.04 AS build
 
-ARG BAZELISK_VERSION=1.29.0
+ARG BAZELISK_VERSION=1.30.0
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
@@ -15,14 +15,14 @@ WORKDIR /src
 
 COPY . .
 
-RUN bazel build -c opt //warp:warp_bin && \
-    install -Dm755 bazel-bin/warp_bin /usr/local/bin/warp
+RUN bazel build -c opt //warp:app && \
+    install -Dm755 bazel-bin/warp/app /usr/local/bin/warp
 
 RUN mkdir -p /opt/warp/lib && \
     ldd /usr/local/bin/warp | awk '/=> \// {print $3}' | xargs -r -I '{}' cp -L '{}' /opt/warp/lib/ && \
     ! ldd /usr/local/bin/warp | grep -q "not found"
 
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
