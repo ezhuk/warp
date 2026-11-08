@@ -18,6 +18,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: pre-commit/action@v3.0.1
+      - uses: mamba-org/setup-micromamba@v3
+        with:
+          environment-name: gcc
+          create-args: >-
+            --override-channels
+            -c conda-forge
+            gcc=16.2.0
+            gxx=16.2.0
       - run: |
           bazel build //...
           bazel test //tests/... --test_output=errors
+        shell: micromamba-shell {0}
